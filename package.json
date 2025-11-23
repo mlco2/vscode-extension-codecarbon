@@ -84,7 +84,8 @@
     "compile": "tsc && cp -r src/scripts out",
     "watch": "tsc -watch",
     "lint": "eslint src",
-    "package": "vsce package"
+    "package": "vsce package",
+    "test": "echo \"No tests yet\""
   },
   "devDependencies": {
     "@types/node": "^18.19.0",
