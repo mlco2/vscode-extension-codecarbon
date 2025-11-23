@@ -1,4 +1,6 @@
-
+"""
+Script to start and stop the CodeCarbon emissions tracker.
+"""
 import sys
 import time
 import signal

@@ -1,99 +1,66 @@
+/**
+ * Main entry point for the CodeCarbon VSCode extension.
+ */
 import * as vscode from 'vscode';
-import { registerLogger, traceLog, traceVerbose } from './common/log/logging';
-import { checkIfConfigurationChanged, getGlobalSettings, getInterpreterFromSetting } from './common/settings';
-import { installPythonPackage, isPythonPackageInstalled, loadPythonPackageDefaults } from './common/setup';
-import { createOutputChannel, onDidChangeConfiguration, registerCommand } from './common/vscodeapi';
-import { initializeStatusBar, startTracker, stopTracker } from './common/actions';
-import { ChildProcess } from 'child_process';
-import { ResolvedEnvironment } from '@vscode/python-extension';
+import { LogService } from './services/logService';
+import { TrackerService } from './services/trackerService';
+import { PythonService } from './services/pythonService';
+import { StatusBarManager } from './ui/statusBar';
+import { ConfigService } from './utils/config';
+import { COMMANDS, MESSAGES } from './utils/constants';
 
-let pythonProcess: ChildProcess | null = null;
-const DEFAULT_INTERPRETER_PATH = 'python';
-let interpreter = { path: DEFAULT_INTERPRETER_PATH } as ResolvedEnvironment;
+let trackerService: TrackerService;
+let logService: LogService;
+let pythonService: PythonService;
+let statusBarManager: StatusBarManager;
+
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
-    const pythonPackageInfo = loadPythonPackageDefaults();
-    const packageName = pythonPackageInfo.name;
-    const packageId = pythonPackageInfo.module;
-    const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
-    initializeStatusBar(statusBarItem);
-    statusBarItem.show();
+    // Initialize services
+    logService = LogService.getInstance();
+    statusBarManager = StatusBarManager.getInstance();
+    trackerService = new TrackerService();
+    pythonService = new PythonService();
 
-    // Setup logging
-    const outputChannel = createOutputChannel(packageName);
-    context.subscriptions.push(outputChannel, registerLogger(outputChannel));
+    // Setup UI
+    statusBarManager.show();
 
-    // Log Server information
-    traceLog(`Name: ${pythonPackageInfo.name}`);
-    traceLog(`Module: ${pythonPackageInfo.module}`);
-    traceVerbose(`Full Python Package Info: ${JSON.stringify(pythonPackageInfo)}`);
+    // Add to subscriptions for cleanup
+    context.subscriptions.push(logService.getOutputChannel(), statusBarManager.getStatusBarItem());
 
-    const runPythonPackage = async (interpreter: ResolvedEnvironment) => {
-        // Check that the package is correctly installed
-        traceLog(`Using python interpreter: ${interpreter.path}`);
-        const isInstalled = await isPythonPackageInstalled(interpreter.path, packageId);
-        if (!isInstalled) {
-            const install = await vscode.window.showWarningMessage(
-                `The Python package "${packageName}" is not installed. Would you like to install it?`,
-                'Yes',
-                'No',
-            );
+    logService.log(MESSAGES.EXTENSION_ACTIVATED);
 
-            if (install === 'Yes') {
-                vscode.window.showInformationMessage(`Installing "${packageName}"...`);
-                try {
-                    const response = await installPythonPackage(interpreter.path, packageId);
-                    // If install fails, show an error message
-                    if (!response.installed) {
-                        vscode.window.showErrorMessage(`Failed to install ${packageName}. ${response.error}`);
-                        return;
-                    }
-                    vscode.window.showInformationMessage(`Successfully installed ${packageName}`);
-                } catch (error) {
-                    vscode.window.showErrorMessage(`Failed to install ${packageName}: ${error}`);
-                    return;
-                    return;
-                    return;
-                }
-            } else {
-                vscode.window.showErrorMessage(`Failed to install ${packageName}`);
-                return;
-            }
-        }
-        // If launchOnStartup is true, start the tracker
-        const globalSettings = await getGlobalSettings(packageId);
-        if (globalSettings.launchOnStartup) {
-            pythonProcess = await startTracker(interpreter.path, pythonProcess, statusBarItem, packageId);
-            traceLog(`Starting ${packageName} on startup`);
-        }
-    };
+    // Register commands
     context.subscriptions.push(
-        onDidChangeConfiguration(async (e: vscode.ConfigurationChangeEvent) => {
-            if (checkIfConfigurationChanged(e, packageId)) {
-                await runPythonPackage(interpreter);
-            }
-        }),
-        // Register commands
-        registerCommand(`${packageId}.start`, async () => {
-            pythonProcess = await startTracker(interpreter.path, pythonProcess, statusBarItem, packageId);
-        }),
-        registerCommand(`${packageId}.stop`, async () => {
-            pythonProcess = await stopTracker(interpreter.path, pythonProcess, statusBarItem);
-        }),
+        vscode.commands.registerCommand(COMMANDS.START, () => startTracker()),
+        vscode.commands.registerCommand(COMMANDS.STOP, () => stopTracker()),
+        vscode.commands.registerCommand(COMMANDS.CHECK_VERSION, () => checkCodecarbonVersion()),
     );
 
-    setImmediate(async () => {
-        const userInterpreter = getInterpreterFromSetting(pythonPackageInfo.module);
-        if (userInterpreter === undefined || userInterpreter.length === 0) {
-            traceLog(`Python source interpreter not found in settings. Using default interpreter.`);
-        } else {
-            interpreter = { path: userInterpreter[0] } as ResolvedEnvironment;
-        }
-        await runPythonPackage(interpreter);
-    });
+    // Auto-start if enabled in settings
+    if (ConfigService.isLaunchOnStartupEnabled()) {
+        await startTracker();
+    }
 }
 
 export async function deactivate(): Promise<void> {
-    if (pythonProcess) {
-        pythonProcess.kill();
+    trackerService?.cleanup();
+}
+
+async function startTracker(): Promise<void> {
+    const success = await trackerService.start();
+    if (success) {
+        statusBarManager.setRunningState();
     }
+}
+
+async function stopTracker(): Promise<void> {
+    const success = trackerService.stop();
+    if (success) {
+        statusBarManager.setStoppedState();
+    }
+}
+
+async function checkCodecarbonVersion(): Promise<void> {
+    const pythonPath = ConfigService.getPythonPath();
+    await pythonService.checkCodecarbonVersion(pythonPath);
 }

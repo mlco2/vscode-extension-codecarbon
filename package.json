@@ -30,19 +30,15 @@
     "emissions",
     "environment",
     "sustainability",
-    "climate",
-    "impact"
+    "climate"
   ],
   "engines": {
     "vscode": "^1.94.0"
   },
   "categories": [
-    "Programming Languages",
     "Machine Learning",
     "Other",
-    "Data Science",
-    "Visualization",
-    "Education"
+    "Data Science"
   ],
   "activationEvents": [
     "onStartupFinished"
@@ -54,13 +50,11 @@
         "codecarbon.launchOnStartup": {
           "default": true,
           "description": "Launch the codecarbon tracker on startup.",
-          "scope": "machine",
           "type": "boolean"
         },
         "codecarbon.interpreter": {
           "default": [],
-          "description": "When set to a path to python executable, extension will use that to launch any python subprocess.",
-          "scope": "resource",
+          "description": "Python executable path. Leave empty to use system default.",
           "items": {
             "type": "string"
           },
@@ -78,37 +72,28 @@
         "title": "Stop tracking emissions",
         "category": "Codecarbon",
         "command": "codecarbon.stop"
+      },
+      {
+        "title": "Check codecarbon version",
+        "category": "Codecarbon",
+        "command": "codecarbon.checkVersion"
       }
     ]
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
     "compile": "tsc && cp -r src/scripts out",
     "watch": "tsc -watch",
-    "pretest": "npm run compile && npm run lint",
     "lint": "eslint src",
-    "test": "vscode-test"
+    "package": "vsce package"
   },
   "devDependencies": {
-    "@types/fs-extra": "^11.0.1",
-    "@types/glob": "^8.1.0",
-    "@types/jest": "^29.5.12",
-    "@types/node": "16.x",
-    "@types/vscode": "1.78.0",
+    "@types/node": "^18.19.0",
+    "@types/vscode": "^1.94.0",
     "@typescript-eslint/eslint-plugin": "^6.2.1",
     "@typescript-eslint/parser": "^6.9.1",
-    "@vscode/test-electron": "^2.3.3",
     "@vscode/vsce": "^3.2.1",
     "eslint": "^8.46.0",
-    "glob": "^10.3.10",
-    "jest": "^29.7.0",
     "prettier": "^3.0.0",
-    "ts-loader": "^9.4.4",
     "typescript": "^5.1.6"
-  },
-  "dependencies": {
-    "@vscode/python-extension": "1.0.2",
-    "fs-extra": "^11.1.1",
-    "vscode-languageclient": "^8.1.0"
   }
 }
