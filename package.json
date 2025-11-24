@@ -1,100 +1,105 @@
 {
-  "name": "codecarbon",
-  "displayName": "Codecarbon",
-  "description": "Estimate and track carbon emissions from your computer, quantify and analyze their impact.",
-  "version": "0.2.0",
-  "preview": true,
-  "pythonPackageInfo": {
-    "name": "Codecarbon",
-    "module": "codecarbon"
-  },
-  "publisher": "codecarbon",
-  "license": "MIT",
-  "homepage": "https://github.com/inimaz/vscode-extension-codecarbon",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/inimaz/vscode-extension-codecarbon.git"
-  },
-  "bugs": {
-    "url": "https://github.com/inimaz/vscode-extension-codecarbon/issues"
-  },
-  "galleryBanner": {
-    "color": "#1e415e",
-    "theme": "dark"
-  },
-  "icon": "images/logo-round.png",
-  "keywords": [
-    "python",
-    "codecarbon",
-    "carbon",
-    "emissions",
-    "environment",
-    "sustainability",
-    "climate"
-  ],
-  "engines": {
-    "vscode": "^1.94.0"
-  },
-  "categories": [
-    "Machine Learning",
-    "Other",
-    "Data Science"
-  ],
-  "activationEvents": [
-    "onStartupFinished"
-  ],
-  "main": "./out/extension.js",
-  "contributes": {
-    "configuration": {
-      "properties": {
-        "codecarbon.launchOnStartup": {
-          "default": true,
-          "description": "Launch the codecarbon tracker on startup.",
-          "type": "boolean"
-        },
-        "codecarbon.interpreter": {
-          "default": [],
-          "description": "Python executable path. Leave empty to use system default.",
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        }
-      }
+    "name": "codecarbon",
+    "displayName": "Codecarbon",
+    "description": "Estimate and track carbon emissions from your computer, quantify and analyze their impact.",
+    "version": "0.2.0",
+    "preview": true,
+    "pythonPackageInfo": {
+        "name": "Codecarbon",
+        "module": "codecarbon"
     },
-    "commands": [
-      {
-        "title": "Start tracking emissions",
-        "category": "Codecarbon",
-        "command": "codecarbon.start"
-      },
-      {
-        "title": "Stop tracking emissions",
-        "category": "Codecarbon",
-        "command": "codecarbon.stop"
-      },
-      {
-        "title": "Check codecarbon version",
-        "category": "Codecarbon",
-        "command": "codecarbon.checkVersion"
-      }
-    ]
-  },
-  "scripts": {
-    "compile": "tsc && cp -r src/scripts out",
-    "watch": "tsc -watch",
-    "lint": "eslint src",
-    "package": "vsce package",
-    "test": "echo \"No tests yet\""
-  },
-  "devDependencies": {
-    "@types/node": "^18.19.0",
-    "@types/vscode": "^1.94.0",
-    "@typescript-eslint/eslint-plugin": "^6.2.1",
-    "@typescript-eslint/parser": "^6.9.1",
-    "@vscode/vsce": "^3.2.1",
-    "eslint": "^8.46.0",
-    "prettier": "^3.0.0",
-    "typescript": "^5.1.6"
-  }
+    "publisher": "codecarbon",
+    "license": "MIT",
+    "homepage": "https://github.com/inimaz/vscode-extension-codecarbon",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/inimaz/vscode-extension-codecarbon.git"
+    },
+    "bugs": {
+        "url": "https://github.com/inimaz/vscode-extension-codecarbon/issues"
+    },
+    "galleryBanner": {
+        "color": "#1e415e",
+        "theme": "dark"
+    },
+    "icon": "images/logo-round.png",
+    "keywords": [
+        "python",
+        "codecarbon",
+        "carbon",
+        "emissions",
+        "environment",
+        "sustainability",
+        "climate"
+    ],
+    "engines": {
+        "vscode": "^1.94.0"
+    },
+    "categories": [
+        "Machine Learning",
+        "Other",
+        "Data Science"
+    ],
+    "activationEvents": [
+        "onStartupFinished"
+    ],
+    "main": "./out/extension.js",
+    "contributes": {
+        "configuration": {
+            "properties": {
+                "codecarbon.launchOnStartup": {
+                    "default": true,
+                    "description": "Launch the codecarbon tracker on startup.",
+                    "type": "boolean"
+                },
+                "codecarbon.interpreter": {
+                    "default": [],
+                    "description": "Python executable path. Leave empty to use system default.",
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": "array"
+                }
+            }
+        },
+        "commands": [
+            {
+                "title": "Start tracking emissions",
+                "category": "Codecarbon",
+                "command": "codecarbon.start"
+            },
+            {
+                "title": "Stop tracking emissions",
+                "category": "Codecarbon",
+                "command": "codecarbon.stop"
+            },
+            {
+                "title": "Check codecarbon version",
+                "category": "Codecarbon",
+                "command": "codecarbon.checkVersion"
+            }
+        ]
+    },
+    "scripts": {
+        "compile": "tsc && cp -r src/scripts out",
+        "watch": "tsc -watch",
+        "lint": "eslint src",
+        "package": "vsce package",
+        "pretest": "npm run compile",
+        "test": "node ./out/test/runTest.js"
+    },
+    "devDependencies": {
+        "@types/mocha": "^10.0.10",
+        "@types/node": "^18.19.0",
+        "@types/vscode": "^1.94.0",
+        "@typescript-eslint/eslint-plugin": "^6.2.1",
+        "@typescript-eslint/parser": "^6.9.1",
+        "@vscode/test-electron": "^2.5.2",
+        "@vscode/vsce": "^3.2.1",
+        "eslint": "^8.46.0",
+        "glob": "^13.0.0",
+        "mocha": "^11.7.5",
+        "prettier": "^3.0.0",
+        "typescript": "^5.1.6"
+    }
 }
