@@ -3,7 +3,7 @@
  * It will start/stop the tracker process and handle its output.
  * The tracker is located in TRACKER_SCRIPT
  */
-import { ChildProcess, spawn } from 'child_process';
+import { ChildProcess, spawn, SpawnOptions } from 'child_process';
 import * as vscode from 'vscode';
 import * as path from 'path';
 import { LogService } from './logService';
@@ -13,15 +13,19 @@ import { MESSAGES } from '../utils/constants';
 
 const TRACKER_SCRIPT = path.resolve(__dirname, '../scripts/tracker.py');
 
+export type ISpawnFunction = typeof spawn;
+
 export class TrackerService {
     /** The child process running the Python tracker */
     private pythonProcess: ChildProcess | null = null;
     private logService: LogService;
     private pythonService: PythonService;
+    private spawnFn: ISpawnFunction;
 
-    constructor() {
-        this.logService = LogService.getInstance();
-        this.pythonService = new PythonService();
+    constructor(pythonService?: PythonService, logService?: LogService, spawnFn?: ISpawnFunction) {
+        this.logService = logService || LogService.getInstance();
+        this.pythonService = pythonService || new PythonService();
+        this.spawnFn = spawnFn || spawn;
     }
 
     /**
@@ -49,7 +53,7 @@ export class TrackerService {
         }
 
         // Start the tracker process
-        this.pythonProcess = spawn(pythonPath, [TRACKER_SCRIPT, 'start']);
+        this.pythonProcess = this.spawnFn(pythonPath, [TRACKER_SCRIPT, 'start']);
 
         this.setupProcessHandlers();
 
