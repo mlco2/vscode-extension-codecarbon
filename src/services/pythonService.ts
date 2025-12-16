@@ -1,7 +1,7 @@
 /**
  * Service to manage Python package installations and version checks.
  */
-import { exec } from 'child_process';
+import { execFile } from 'child_process';
 import * as vscode from 'vscode';
 import { LogService } from './logService';
 import { MESSAGES, INSTALL_OPTIONS } from '../utils/constants';
@@ -18,7 +18,7 @@ export class PythonService {
      */
     public async isPackageInstalled(pythonPath: string, packageName: string): Promise<boolean> {
         return new Promise((resolve) => {
-            exec(`${pythonPath} -m pip show ${packageName}`, (error, stdout) => {
+            execFile(pythonPath, ['-m', 'pip', 'show', packageName], (error, stdout) => {
                 if (!error && stdout) {
                     // Extract version from pip show output
                     const versionMatch = stdout.match(/Version: (.+)/);
@@ -36,7 +36,7 @@ export class PythonService {
      */
     public async installPackage(pythonPath: string, packageName: string): Promise<void> {
         return new Promise((resolve, reject) => {
-            exec(`${pythonPath} -m pip install ${packageName}`, (error, stdout, stderr) => {
+            execFile(pythonPath, ['-m', 'pip', 'install', packageName], (error, stdout, stderr) => {
                 if (error) {
                     reject(new Error(`Failed to install ${packageName}: ${stderr}`));
                 } else {
@@ -121,7 +121,7 @@ export class PythonService {
      */
     public async checkCodecarbonVersion(pythonPath: string): Promise<void> {
         return new Promise((resolve) => {
-            exec(`${pythonPath} -m pip show codecarbon`, (error, stdout) => {
+            execFile(pythonPath, ['-m', 'pip', 'show', 'codecarbon'], (error, stdout) => {
                 if (error) {
                     vscode.window.showWarningMessage(MESSAGES.CHECK_VERSION_NOT_INSTALLED);
                     this.logService.log(MESSAGES.NOT_INSTALLED);
