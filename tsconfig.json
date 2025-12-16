@@ -1,16 +1,14 @@
 {
     "compilerOptions": {
-        "module": "Node16",
-        "target": "ES2022",
+        "module": "CommonJS",
+        "target": "ES2020",
         "outDir": "out",
-        "lib": ["ES2022"],
+        "lib": ["ES2020"],
         "sourceMap": true,
         "rootDir": "src",
         "strict": true,
-        "esModuleInterop": true,
-        "resolveJsonModule": true,
-        "types": []
+        "esModuleInterop": true
     },
-    "exclude": ["node_modules/**"],
-    "include": ["src/**/*.ts", "src/scripts"]
+    "exclude": ["node_modules/**", "out/**"],
+    "include": ["src/**/*.ts"]
 }

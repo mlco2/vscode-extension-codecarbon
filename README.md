@@ -12,7 +12,11 @@ This extension allows you to track the carbon emissions of your code directly fr
 -   Start and stop the emissions tracking with a simple click.
     ![Demo](./images/demo.gif)
 
--   Save it into a csv file for further analysis.
+-   View log in the output panel.
+
+![Output panel](./images/output_panel.png)
+
+-   Save your emissions data into a csv file for further analysis.
 
 ## Requirements
 
