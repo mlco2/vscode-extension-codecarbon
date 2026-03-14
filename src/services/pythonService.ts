@@ -1,147 +1,328 @@
 /**
- * Service to manage Python package installations and version checks.
+ * Service to manage Python runtime checks and CodeCarbon installation.
  */
 import { execFile } from 'child_process';
 import * as vscode from 'vscode';
 import { LogService } from './logService';
-import { MESSAGES, INSTALL_OPTIONS } from '../utils/constants';
+import { ConfigService } from '../utils/config';
+import { INSTALL_STRATEGIES, MESSAGES, PYTHON_PACKAGE_NAME } from '../utils/constants';
+
+type InstallerState = 'not_installed' | 'installing' | 'installed' | 'install_failed';
+type InstallFailureReason =
+    | 'none'
+    | 'permissions'
+    | 'no_network'
+    | 'interpreter_mismatch'
+    | 'externally_managed_env'
+    | 'pip_missing'
+    | 'unknown';
+
+interface RuntimePreflight {
+    ok: boolean;
+    pythonVersion?: string;
+    pipVersion?: string;
+    isVenv?: boolean;
+    details: string[];
+}
+
+interface ExecResult {
+    ok: boolean;
+    stdout: string;
+    stderr: string;
+    errorMessage: string;
+}
+
+interface InstallCounters {
+    attempts: number;
+    success: number;
+    failure: number;
+    lastFailure: InstallFailureReason;
+}
 
 export class PythonService {
+    private static readonly MIN_SUPPORTED_PYTHON_MINOR = 8;
     private logService: LogService;
+    private installerState: InstallerState = 'not_installed';
+    private counters: InstallCounters = { attempts: 0, success: 0, failure: 0, lastFailure: 'none' };
+    private startupHealthChecked = false;
 
     constructor() {
         this.logService = LogService.getInstance();
     }
 
-    /**
-     * Check if a Python package is installed
-     */
-    public async isPackageInstalled(pythonPath: string, packageName: string): Promise<boolean> {
-        return new Promise((resolve) => {
-            execFile(pythonPath, ['-m', 'pip', 'show', packageName], (error, stdout) => {
-                if (!error && stdout) {
-                    // Extract version from pip show output
-                    const versionMatch = stdout.match(/Version: (.+)/);
-                    if (versionMatch) {
-                        this.logService.log(`Found ${packageName} version: ${versionMatch[1]}`);
-                    }
-                }
-                resolve(!error);
-            });
-        });
+    public getInstallerState(): InstallerState {
+        return this.installerState;
     }
 
     /**
-     * Install a Python package
+     * Lightweight install health check on startup without popups.
      */
-    public async installPackage(pythonPath: string, packageName: string): Promise<void> {
-        return new Promise((resolve, reject) => {
-            execFile(pythonPath, ['-m', 'pip', 'install', packageName], (error, stdout, stderr) => {
-                if (error) {
-                    reject(new Error(`Failed to install ${packageName}: ${stderr}`));
-                } else {
-                    resolve();
-                }
-            });
-        });
+    public async checkInstallHealthOnStartup(pythonPath: string): Promise<void> {
+        if (this.startupHealthChecked) {
+            return;
+        }
+        this.startupHealthChecked = true;
+
+        const preflight = await this.runRuntimePreflight(pythonPath);
+        if (!preflight.ok) {
+            this.logService.logWarning('Startup health check: Python preflight failed.');
+            return;
+        }
+
+        const installed = await this.isPackageInstalled(pythonPath, PYTHON_PACKAGE_NAME);
+        this.installerState = installed ? 'installed' : 'not_installed';
+        this.logService.log(`Startup health check: installer_state=${this.installerState}`);
     }
 
     /**
-     * Handle codecarbon package installation with user prompts
+     * Ensure runtime is ready and codecarbon package is available before tracking starts.
      */
     public async ensureCodecarbonInstalled(pythonPath: string): Promise<boolean> {
-        this.logService.log(`Checking codecarbon installation with Python: ${pythonPath}`);
-        const isInstalled = await this.isPackageInstalled(pythonPath, 'codecarbon');
+        this.logService.log(`Preparing Python runtime: ${pythonPath}`);
+        const preflight = await this.runRuntimePreflight(pythonPath);
+        if (!preflight.ok) {
+            vscode.window.showErrorMessage(MESSAGES.PREFLIGHT_FAILED);
+            return false;
+        }
 
+        const isInstalled = await this.isPackageInstalled(pythonPath, PYTHON_PACKAGE_NAME);
         if (isInstalled) {
+            this.installerState = 'installed';
             return true;
         }
 
-        const install = await vscode.window.showWarningMessage(
-            MESSAGES.INSTALL_PROMPT,
-            INSTALL_OPTIONS.LATEST,
-            INSTALL_OPTIONS.SPECIFIC,
-            INSTALL_OPTIONS.CANCEL,
-        );
-
-        if (install === INSTALL_OPTIONS.LATEST) {
-            return this.installLatestVersion(pythonPath);
-        } else if (install === INSTALL_OPTIONS.SPECIFIC) {
-            return this.installSpecificVersion(pythonPath);
+        this.installerState = 'not_installed';
+        if (!ConfigService.isAutoInstallEnabled()) {
+            vscode.window.showWarningMessage(MESSAGES.INSTALL_DISABLED);
+            return false;
         }
 
+        return this.installOrRepairCodecarbon(pythonPath, true);
+    }
+
+    /**
+     * Explicit command entrypoint to install/repair codecarbon package.
+     */
+    public async installOrRepairCodecarbon(pythonPath: string, silentSuccess = false): Promise<boolean> {
+        const preflight = await this.runRuntimePreflight(pythonPath);
+        if (!preflight.ok) {
+            vscode.window.showErrorMessage(MESSAGES.PREFLIGHT_FAILED);
+            return false;
+        }
+
+        this.installerState = 'installing';
+        this.counters.attempts += 1;
+        this.logService.log(`Installer state=${this.installerState}, strategy=${ConfigService.getInstallStrategy()}`);
+
+        const strategies = this.resolveInstallStrategies();
+        for (const args of strategies) {
+            const result = await this.execPython(pythonPath, ['-m', 'pip', 'install', ...args, PYTHON_PACKAGE_NAME]);
+            this.logPipAttempt(args, result);
+            if (result.ok) {
+                this.installerState = 'installed';
+                this.counters.success += 1;
+                this.counters.lastFailure = 'none';
+                this.logCounters();
+                if (!silentSuccess) {
+                    vscode.window.showInformationMessage(MESSAGES.INSTALL_REPAIR_SUCCESS);
+                }
+                return true;
+            }
+
+            const reason = this.classifyInstallFailure(result.stderr, result.errorMessage);
+            this.counters.lastFailure = reason;
+        }
+
+        this.installerState = 'install_failed';
+        this.counters.failure += 1;
+        this.logCounters();
+        vscode.window.showErrorMessage(`${MESSAGES.INSTALL_REPAIR_FAILED} ${this.remediationFor(this.counters.lastFailure)}`);
         return false;
     }
 
     /**
-     * Install the latest version of codecarbon
-     */
-    private async installLatestVersion(pythonPath: string): Promise<boolean> {
-        vscode.window.showInformationMessage('Installing codecarbon (latest version)...');
-        try {
-            await this.installPackage(pythonPath, 'codecarbon');
-            vscode.window.showInformationMessage(MESSAGES.INSTALL_SUCCESS);
-            // Check version after installation
-            await this.isPackageInstalled(pythonPath, 'codecarbon');
-            return true;
-        } catch (error) {
-            vscode.window.showErrorMessage(`${MESSAGES.INSTALL_FAILED}: ${error}`);
-            return false;
-        }
-    }
-
-    /**
-     * Install a specific version of codecarbon
-     */
-    private async installSpecificVersion(pythonPath: string): Promise<boolean> {
-        const version = await vscode.window.showInputBox({
-            prompt: MESSAGES.VERSION_PROMPT,
-            placeHolder: MESSAGES.VERSION_PLACEHOLDER,
-        });
-
-        if (!version) {
-            return false;
-        }
-
-        vscode.window.showInformationMessage(`Installing codecarbon version ${version}...`);
-        try {
-            await this.installPackage(pythonPath, `codecarbon==${version}`);
-            vscode.window.showInformationMessage(`Successfully installed codecarbon ${version}`);
-            // Check version after installation
-            await this.isPackageInstalled(pythonPath, 'codecarbon');
-            return true;
-        } catch (error) {
-            vscode.window.showErrorMessage(`Failed to install codecarbon ${version}: ${error}`);
-            return false;
-        }
-    }
-
-    /**
-     * Check codecarbon version and display information
+     * Check codecarbon version and display information.
      */
     public async checkCodecarbonVersion(pythonPath: string): Promise<void> {
+        const preflight = await this.runRuntimePreflight(pythonPath);
+        if (!preflight.ok) {
+            vscode.window.showErrorMessage(MESSAGES.PREFLIGHT_FAILED);
+            return;
+        }
+
+        const result = await this.execPython(pythonPath, ['-m', 'pip', 'show', PYTHON_PACKAGE_NAME]);
+        if (!result.ok) {
+            vscode.window.showWarningMessage(MESSAGES.CHECK_VERSION_NOT_INSTALLED);
+            this.logService.log(MESSAGES.NOT_INSTALLED);
+            return;
+        }
+
+        const versionMatch = result.stdout.match(/Version:\s+(.+)/);
+        const locationMatch = result.stdout.match(/Location:\s+(.+)/);
+        if (!versionMatch) {
+            vscode.window.showErrorMessage(MESSAGES.VERSION_ERROR);
+            return;
+        }
+
+        const version = versionMatch[1].trim();
+        const location = locationMatch ? locationMatch[1].trim() : 'Unknown';
+        vscode.window.showInformationMessage(`Codecarbon ${version} is installed`);
+        this.logService.log(`Codecarbon version: ${version}`);
+        this.logService.log(`Installation location: ${location}`);
+        this.logService.log(`Python interpreter: ${pythonPath}`);
+    }
+
+    private async runRuntimePreflight(pythonPath: string): Promise<RuntimePreflight> {
+        const details: string[] = [];
+
+        const versionResult = await this.execPython(pythonPath, ['--version']);
+        if (!versionResult.ok) {
+            details.push(`Python executable not resolvable: ${pythonPath}`);
+            this.logPreflight(details, pythonPath);
+            return { ok: false, details };
+        }
+
+        const versionOutput = `${versionResult.stdout} ${versionResult.stderr}`.trim();
+        const versionMatch = versionOutput.match(/Python\s+(\d+)\.(\d+)\.(\d+)/i);
+        if (!versionMatch) {
+            details.push(`Unable to parse Python version from output: ${versionOutput}`);
+            this.logPreflight(details, pythonPath);
+            return { ok: false, details };
+        }
+
+        const major = Number(versionMatch[1]);
+        const minor = Number(versionMatch[2]);
+        const version = `${versionMatch[1]}.${versionMatch[2]}.${versionMatch[3]}`;
+        if (major !== 3 || minor < PythonService.MIN_SUPPORTED_PYTHON_MINOR) {
+            details.push(`Unsupported Python version ${version}. Use Python 3.${PythonService.MIN_SUPPORTED_PYTHON_MINOR}+.`);
+            this.logPreflight(details, pythonPath);
+            return { ok: false, details };
+        }
+
+        const pipResult = await this.execPython(pythonPath, ['-m', 'pip', '--version']);
+        if (!pipResult.ok) {
+            details.push('pip is not available for selected interpreter.');
+            this.logPreflight(details, pythonPath);
+            return { ok: false, details };
+        }
+
+        const venvResult = await this.execPython(pythonPath, ['-c', 'import sys; print(int(sys.prefix != getattr(sys, "base_prefix", sys.prefix)))']);
+        const isVenv = venvResult.ok && venvResult.stdout.trim() === '1';
+        details.push(`Python interpreter: ${pythonPath}`);
+        details.push(`Python version: ${version}`);
+        details.push(`pip: ${pipResult.stdout.trim()}`);
+        details.push(`Virtual environment: ${isVenv ? 'yes' : 'no'}`);
+        this.logPreflight(details, pythonPath);
+        return {
+            ok: true,
+            pythonVersion: version,
+            pipVersion: pipResult.stdout.trim(),
+            isVenv,
+            details,
+        };
+    }
+
+    private async isPackageInstalled(pythonPath: string, packageName: string): Promise<boolean> {
+        const result = await this.execPython(pythonPath, ['-m', 'pip', 'show', packageName]);
+        if (!result.ok) {
+            return false;
+        }
+        const versionMatch = result.stdout.match(/Version:\s+(.+)/);
+        if (versionMatch) {
+            this.logService.log(`Found ${packageName} version: ${versionMatch[1].trim()}`);
+        }
+        return true;
+    }
+
+    private resolveInstallStrategies(): string[][] {
+        const strategy = ConfigService.getInstallStrategy();
+        const customArgs = ConfigService.getCustomPipArgs();
+        if (strategy === INSTALL_STRATEGIES.USER) {
+            return [['--user']];
+        }
+        if (strategy === INSTALL_STRATEGIES.CUSTOM) {
+            if (!customArgs) {
+                return [[]];
+            }
+            return [customArgs.split(/\s+/).filter(Boolean)];
+        }
+        // Default: current interpreter/venv first, then user fallback.
+        return [[], ['--user']];
+    }
+
+    private classifyInstallFailure(stderr: string, errorMessage: string): InstallFailureReason {
+        const haystack = `${stderr}\n${errorMessage}`.toLowerCase();
+        if (haystack.includes('externally-managed-environment')) {
+            return 'externally_managed_env';
+        }
+        if (haystack.includes('permission denied') || haystack.includes('not permitted')) {
+            return 'permissions';
+        }
+        if (haystack.includes('temporary failure in name resolution') || haystack.includes('connection') || haystack.includes('timed out')) {
+            return 'no_network';
+        }
+        if (haystack.includes('no module named pip')) {
+            return 'pip_missing';
+        }
+        if (haystack.includes('requires python') || haystack.includes('unsupported python')) {
+            return 'interpreter_mismatch';
+        }
+        return 'unknown';
+    }
+
+    private remediationFor(reason: InstallFailureReason): string {
+        switch (reason) {
+            case 'permissions':
+                return 'Try install strategy "user" or run inside a writable virtual environment.';
+            case 'no_network':
+                return 'Check network/proxy settings, then retry install.';
+            case 'interpreter_mismatch':
+                return 'Use a supported Python interpreter (3.8+).';
+            case 'externally_managed_env':
+                return 'Use a virtual environment, or set install strategy to "user".';
+            case 'pip_missing':
+                return 'Install pip for the selected interpreter and retry.';
+            default:
+                return 'See output logs for stderr details.';
+        }
+    }
+
+    private logPreflight(details: string[], pythonPath: string): void {
+        this.logService.log(`Runtime preflight for interpreter: ${pythonPath}`);
+        for (const line of details) {
+            this.logService.log(`Preflight: ${line}`);
+        }
+    }
+
+    private logPipAttempt(args: string[], result: ExecResult): void {
+        this.logService.log(`pip install args: ${args.join(' ') || '(default)'}`);
+        this.logService.log(`pip install ok=${result.ok}`);
+        if (result.stdout.trim()) {
+            this.logService.log(`pip stdout: ${result.stdout.trim()}`);
+        }
+        if (result.stderr.trim()) {
+            this.logService.logWarning(`pip stderr: ${result.stderr.trim()}`);
+        }
+        if (!result.ok && result.errorMessage) {
+            this.logService.logError(`pip error: ${result.errorMessage}`);
+        }
+    }
+
+    private logCounters(): void {
+        this.logService.log(
+            `Installer counters: attempts=${this.counters.attempts}, success=${this.counters.success}, failure=${this.counters.failure}, last_failure=${this.counters.lastFailure}`,
+        );
+    }
+
+    private async execPython(pythonPath: string, args: string[]): Promise<ExecResult> {
         return new Promise((resolve) => {
-            execFile(pythonPath, ['-m', 'pip', 'show', 'codecarbon'], (error, stdout) => {
-                if (error) {
-                    vscode.window.showWarningMessage(MESSAGES.CHECK_VERSION_NOT_INSTALLED);
-                    this.logService.log(MESSAGES.NOT_INSTALLED);
-                } else {
-                    const versionMatch = stdout.match(/Version: (.+)/);
-                    const locationMatch = stdout.match(/Location: (.+)/);
-
-                    if (versionMatch) {
-                        const version = versionMatch[1].trim();
-                        const location = locationMatch ? locationMatch[1].trim() : 'Unknown';
-
-                        vscode.window.showInformationMessage(`Codecarbon ${version} is installed`);
-                        this.logService.log(`Codecarbon version: ${version}`);
-                        this.logService.log(`Installation location: ${location}`);
-                        this.logService.log(`Python interpreter: ${pythonPath}`);
-                    } else {
-                        vscode.window.showErrorMessage(MESSAGES.VERSION_ERROR);
-                    }
-                }
-                resolve();
+            execFile(pythonPath, args, (error, stdout, stderr) => {
+                resolve({
+                    ok: !error,
+                    stdout: stdout ?? '',
+                    stderr: stderr ?? '',
+                    errorMessage: error ? String(error.message || error) : '',
+                });
             });
         });
     }

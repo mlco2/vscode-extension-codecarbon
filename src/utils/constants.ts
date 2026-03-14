@@ -8,11 +8,15 @@ export const COMMANDS = {
     START: 'codecarbon.start',
     STOP: 'codecarbon.stop',
     CHECK_VERSION: 'codecarbon.checkVersion',
+    INSTALL_REPAIR: 'codecarbon.installRepair',
 } as const;
 
 export const CONFIGURATION_KEYS = {
     LAUNCH_ON_STARTUP: 'launchOnStartup',
     INTERPRETER: 'interpreter',
+    AUTO_INSTALL: 'autoInstall',
+    INSTALL_STRATEGY: 'installStrategy',
+    CUSTOM_PIP_ARGS: 'customPipArgs',
 } as const;
 
 export const MESSAGES = {
@@ -29,10 +33,21 @@ export const MESSAGES = {
     VERSION_PLACEHOLDER: '3.1.0',
     CHECK_VERSION_NOT_INSTALLED: 'Codecarbon is not installed. Use "Start tracking emissions" to install it.',
     VERSION_ERROR: 'Could not determine codecarbon version',
+    PREFLIGHT_FAILED: 'Python runtime preflight failed. Check CodeCarbon output for details.',
+    INSTALL_DISABLED: 'CodeCarbon is not installed and auto-install is disabled. Run "Install/Repair CodeCarbon Python package".',
+    INSTALL_REPAIR_SUCCESS: 'CodeCarbon install/repair completed successfully.',
+    INSTALL_REPAIR_FAILED: 'CodeCarbon install/repair failed. Check CodeCarbon output for remediation details.',
+    START_IN_PROGRESS: 'Codecarbon startup is already in progress.',
 } as const;
 
 export const INSTALL_OPTIONS = {
     LATEST: 'Install Latest',
     SPECIFIC: 'Install Specific Version',
     CANCEL: 'Cancel',
+} as const;
+
+export const INSTALL_STRATEGIES = {
+    VENV: 'venv',
+    USER: 'user',
+    CUSTOM: 'custom',
 } as const;

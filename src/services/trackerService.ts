@@ -13,15 +13,23 @@ import { MESSAGES } from '../utils/constants';
 
 const TRACKER_SCRIPT = path.resolve(__dirname, '../scripts/tracker.py');
 
+interface TrackerServiceOptions {
+    onTrackerStopped?: (details: { code: number | null; expected: boolean }) => void;
+}
+
 export class TrackerService {
     /** The child process running the Python tracker */
     private pythonProcess: ChildProcess | null = null;
     private logService: LogService;
     private pythonService: PythonService;
+    private onTrackerStopped?: (details: { code: number | null; expected: boolean }) => void;
+    private stoppingRequested = false;
+    private startInProgress = false;
 
-    constructor() {
+    constructor(options?: TrackerServiceOptions) {
         this.logService = LogService.getInstance();
         this.pythonService = new PythonService();
+        this.onTrackerStopped = options?.onTrackerStopped;
     }
 
     /**
@@ -35,26 +43,36 @@ export class TrackerService {
      * Start the codecarbon tracker
      */
     public async start(): Promise<boolean> {
+        if (this.startInProgress) {
+            vscode.window.showInformationMessage(MESSAGES.START_IN_PROGRESS);
+            return false;
+        }
         if (this.pythonProcess) {
             vscode.window.showInformationMessage(MESSAGES.ALREADY_RUNNING);
             return false;
         }
+        this.startInProgress = true;
 
         const pythonPath = ConfigService.getPythonPath();
 
-        // Ensure codecarbon is installed
-        const isInstalled = await this.pythonService.ensureCodecarbonInstalled(pythonPath);
-        if (!isInstalled) {
-            return false;
+        try {
+            // Ensure codecarbon is installed
+            const isInstalled = await this.pythonService.ensureCodecarbonInstalled(pythonPath);
+            if (!isInstalled) {
+                return false;
+            }
+
+            // Start the tracker process
+            this.stoppingRequested = false;
+            this.pythonProcess = spawn(pythonPath, [TRACKER_SCRIPT, 'start']);
+
+            this.setupProcessHandlers();
+
+            this.logService.log(MESSAGES.TRACKER_STARTED);
+            return true;
+        } finally {
+            this.startInProgress = false;
         }
-
-        // Start the tracker process
-        this.pythonProcess = spawn(pythonPath, [TRACKER_SCRIPT, 'start']);
-
-        this.setupProcessHandlers();
-
-        this.logService.log(MESSAGES.TRACKER_STARTED);
-        return true;
     }
 
     /**
@@ -66,6 +84,7 @@ export class TrackerService {
             return false;
         }
 
+        this.stoppingRequested = true;
         this.pythonProcess.kill();
         this.pythonProcess = null;
 
@@ -92,8 +111,11 @@ export class TrackerService {
         });
 
         this.pythonProcess.on('close', (code) => {
+            const expectedStop = this.stoppingRequested;
+            this.stoppingRequested = false;
             this.logService.log(`Tracker process exited with code ${code}`);
             this.pythonProcess = null;
+            this.onTrackerStopped?.({ code, expected: expectedStop });
         });
     }
 

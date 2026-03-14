@@ -53,12 +53,34 @@
           "type": "boolean"
         },
         "codecarbon.interpreter": {
-          "default": [],
+          "default": "",
           "description": "Python executable path. Leave empty to use system default.",
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
+          "type": "string"
+        },
+        "codecarbon.autoInstall": {
+          "default": true,
+          "description": "Automatically install/repair the Python codecarbon package when missing.",
+          "type": "boolean"
+        },
+        "codecarbon.installStrategy": {
+          "default": "venv",
+          "description": "Package installation strategy for Python codecarbon package.",
+          "type": "string",
+          "enum": [
+            "venv",
+            "user",
+            "custom"
+          ],
+          "enumDescriptions": [
+            "Use current interpreter or active virtual environment first, with --user fallback.",
+            "Use pip install --user.",
+            "Use custom pip arguments from codecarbon.customPipArgs."
+          ]
+        },
+        "codecarbon.customPipArgs": {
+          "default": "",
+          "description": "Custom pip install arguments used when codecarbon.installStrategy is custom (example: --index-url <url> --trusted-host <host>).",
+          "type": "string"
         }
       }
     },
@@ -77,6 +99,11 @@
         "title": "Check codecarbon version",
         "category": "Codecarbon",
         "command": "codecarbon.checkVersion"
+      },
+      {
+        "title": "Install/Repair CodeCarbon Python package",
+        "category": "Codecarbon",
+        "command": "codecarbon.installRepair"
       }
     ]
   },

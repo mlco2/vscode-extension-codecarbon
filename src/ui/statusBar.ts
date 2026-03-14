@@ -20,6 +20,7 @@ export class StatusBarManager {
     private staleCheckTimer: NodeJS.Timeout | null = null;
     private currentMeasurePowerSecs = DEFAULT_MEASURE_POWER_SECS;
     private staleCheckIntervalMs = this.getStaleCheckIntervalMs(this.currentMeasurePowerSecs);
+    private runtimeDetailsLine = 'Interpreter: Unknown';
 
     private constructor() {
         this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
@@ -70,14 +71,29 @@ export class StatusBarManager {
     /**
      * Update status bar to show tracker is running
      */
-    public setRunningState(): void {
+    public setRunningState(runtimeDetails?: { interpreterPath?: string }): void {
+        if (runtimeDetails?.interpreterPath) {
+            this.runtimeDetailsLine = `Interpreter: ${runtimeDetails.interpreterPath}`;
+        }
         this.statusBarItem.text = `${DEFAULT_STATUS_BAR_TEXT} (Running)`;
         this.statusBarItem.command = COMMANDS.STOP;
-        this.statusBarItem.tooltip = 'Stop CodeCarbon tracker';
+        this.statusBarItem.tooltip = `Stop CodeCarbon tracker\n${this.runtimeDetailsLine}`;
         
         // Start listening for metrics updates
         this.startMetricsUpdates();
         this.startStaleChecks();
+    }
+
+    /**
+     * Update status bar to show tracker setup/install is in progress.
+     */
+    public setInstallingState(runtimeDetails?: { interpreterPath?: string }): void {
+        if (runtimeDetails?.interpreterPath) {
+            this.runtimeDetailsLine = `Interpreter: ${runtimeDetails.interpreterPath}`;
+        }
+        this.statusBarItem.text = `${DEFAULT_STATUS_BAR_TEXT} (Installing...)`;
+        this.statusBarItem.command = undefined;
+        this.statusBarItem.tooltip = `Preparing Python runtime and installing dependencies if needed.\n${this.runtimeDetailsLine}`;
     }
 
     /**
@@ -169,6 +185,7 @@ export class StatusBarManager {
         const lines = [
             'CodeCarbon Tracker',
             '',
+            this.runtimeDetailsLine,
             `Emissions: ${emissionsText}`,
             `Power total: ${this.formatMaybePower(totalPower)}`,
             `  CPU: ${this.formatMetricPair(metrics.cpuAvailable, metrics.cpuPower, metrics.cpuEnergy)}`,
