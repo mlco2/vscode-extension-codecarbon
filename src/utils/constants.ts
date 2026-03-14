@@ -9,6 +9,7 @@ export const COMMANDS = {
     STOP: 'codecarbon.stop',
     CHECK_VERSION: 'codecarbon.checkVersion',
     INSTALL_REPAIR: 'codecarbon.installRepair',
+    OPEN_CONFIG: 'codecarbon.openConfig',
 } as const;
 
 export const CONFIGURATION_KEYS = {

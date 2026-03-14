@@ -104,6 +104,11 @@
         "title": "Install/Repair CodeCarbon Python package",
         "category": "Codecarbon",
         "command": "codecarbon.installRepair"
+      },
+      {
+        "title": "Open CodeCarbon config",
+        "category": "Codecarbon",
+        "command": "codecarbon.openConfig"
       }
     ]
   },

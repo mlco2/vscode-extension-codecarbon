@@ -10,6 +10,7 @@ import { LogService } from './logService';
 import { PythonService } from './pythonService';
 import { ConfigService } from '../utils/config';
 import { MESSAGES } from '../utils/constants';
+import { routePythonLogLine } from './pythonLogRouting';
 
 const TRACKER_SCRIPT = path.resolve(__dirname, '../scripts/tracker.py');
 
@@ -54,6 +55,10 @@ export class TrackerService {
         this.startInProgress = true;
 
         const pythonPath = ConfigService.getPythonPath();
+        const workspacePath = ConfigService.getWorkspaceFolderPath();
+        if (workspacePath) {
+            this.logService.log(`Using workspace as tracker cwd for CodeCarbon config discovery: ${workspacePath}`);
+        }
 
         try {
             // Ensure codecarbon is installed
@@ -64,7 +69,7 @@ export class TrackerService {
 
             // Start the tracker process
             this.stoppingRequested = false;
-            this.pythonProcess = spawn(pythonPath, [TRACKER_SCRIPT, 'start']);
+            this.pythonProcess = spawn(pythonPath, [TRACKER_SCRIPT, 'start'], workspacePath ? { cwd: workspacePath } : undefined);
 
             this.setupProcessHandlers();
 
@@ -102,12 +107,11 @@ export class TrackerService {
         }
 
         this.pythonProcess.stderr?.on('data', (data) => {
-            this.logService.logError(`Python error: ${data}`);
+            this.logPythonOutput(data.toString(), true);
         });
 
         this.pythonProcess.stdout?.on('data', (data) => {
-            this.logService.log(`Python output: ${data}`);
-            this.logService.parseLogs(data.toString());
+            this.logPythonOutput(data.toString(), false);
         });
 
         this.pythonProcess.on('close', (code) => {
@@ -126,6 +130,22 @@ export class TrackerService {
         if (this.pythonProcess) {
             this.pythonProcess.kill();
             this.pythonProcess = null;
+        }
+    }
+
+    private logPythonOutput(chunk: string, fromStderr: boolean): void {
+        const text = chunk.toString();
+        const lines = text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+        for (const line of lines) {
+            const routed = routePythonLogLine(line, fromStderr);
+            if (routed.level === 'warn') {
+                this.logService.logWarning(routed.message);
+            } else if (routed.level === 'error') {
+                this.logService.logError(routed.message);
+            } else {
+                this.logService.log(routed.message);
+            }
+            this.logService.parseLogs(routed.parsePayload);
         }
     }
 }

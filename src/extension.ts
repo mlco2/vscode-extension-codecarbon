@@ -2,6 +2,8 @@
  * Main entry point for the CodeCarbon VSCode extension.
  */
 import * as vscode from 'vscode';
+import * as fs from 'fs/promises';
+import * as path from 'path';
 import { LogService } from './services/logService';
 import { TrackerService } from './services/trackerService';
 import { PythonService } from './services/pythonService';
@@ -43,6 +45,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         vscode.commands.registerCommand(COMMANDS.STOP, () => stopTracker()),
         vscode.commands.registerCommand(COMMANDS.CHECK_VERSION, () => checkCodecarbonVersion()),
         vscode.commands.registerCommand(COMMANDS.INSTALL_REPAIR, () => installRepairCodecarbon()),
+        vscode.commands.registerCommand(COMMANDS.OPEN_CONFIG, () => openCodecarbonConfig()),
     );
 
     await pythonService.checkInstallHealthOnStartup(ConfigService.getPythonPath());
@@ -83,4 +86,39 @@ async function checkCodecarbonVersion(): Promise<void> {
 async function installRepairCodecarbon(): Promise<void> {
     const pythonPath = ConfigService.getPythonPath();
     await pythonService.installOrRepairCodecarbon(pythonPath);
+}
+
+async function openCodecarbonConfig(): Promise<void> {
+    const workspacePath = ConfigService.getWorkspaceFolderPath();
+    if (!workspacePath) {
+        vscode.window.showErrorMessage('No workspace folder is open. Open a folder to create/edit .codecarbon.config.');
+        return;
+    }
+    const resolvedPath = path.join(workspacePath, '.codecarbon.config');
+
+    try {
+        await vscode.workspace.fs.stat(vscode.Uri.file(resolvedPath));
+    } catch {
+        const createAction = 'Create config';
+        const selected = await vscode.window.showInformationMessage(
+            `No CodeCarbon config found at ${resolvedPath}. Create a minimal template?`,
+            createAction,
+        );
+        if (selected !== createAction) {
+            return;
+        }
+
+        const template = [
+            '[codecarbon]',
+            '# Official docs: https://mlco2.github.io/codecarbon/usage.html#configuration',
+            'measure_power_secs = 5',
+            '',
+        ].join('\n');
+
+        await fs.mkdir(path.dirname(resolvedPath), { recursive: true });
+        await fs.writeFile(resolvedPath, template, 'utf8');
+    }
+
+    const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(resolvedPath));
+    await vscode.window.showTextDocument(doc, { preview: false });
 }
