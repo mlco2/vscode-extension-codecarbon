@@ -135,6 +135,7 @@ if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("Please provide 'start' as an argument.")
         sys.exit(1)
+
     print("Starting the tracker...")
     command = sys.argv[1].lower()
     if command == "start":
