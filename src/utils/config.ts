@@ -48,11 +48,14 @@ export class ConfigService {
         return config.get<string>(CONFIGURATION_KEYS.CUSTOM_PIP_ARGS, '').trim();
     }
 
+<<<<<<< HEAD
     public static getWorkspaceFolderPath(): string | undefined {
         const folder = vscode.workspace.workspaceFolders?.[0];
         return folder?.uri.fsPath;
     }
 
+=======
+>>>>>>> 665996a87b00abf656bca32e5584e00929b69b2e
     /**
      * Update a configuration value
      */
