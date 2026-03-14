@@ -10,5 +10,11 @@
         "esModuleInterop": true
     },
     "exclude": ["node_modules/**", "out/**", "out-tests/**"],
-    "include": ["src/services/metricsParser.ts", "src/ui/statusBarHelpers.ts", "tests/ts/**/*.ts"]
+    "include": [
+        "src/services/metricsParser.ts",
+        "src/services/trackerLifecycle.ts",
+        "src/ui/statusBarHelpers.ts",
+        "src/utils/configHelpers.ts",
+        "tests/ts/**/*.ts"
+    ]
 }
