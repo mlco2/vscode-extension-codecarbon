@@ -10,3 +10,5 @@ bundled/libs/
 **/__pycache__
 **/.pytest_cache
 **/.vs
+
+out-tests
