@@ -1,0 +1,20 @@
+{
+    "compilerOptions": {
+        "module": "CommonJS",
+        "target": "ES2020",
+        "outDir": "out-tests",
+        "lib": ["ES2020"],
+        "sourceMap": true,
+        "rootDir": ".",
+        "strict": true,
+        "esModuleInterop": true
+    },
+    "exclude": ["node_modules/**", "out/**", "out-tests/**"],
+    "include": [
+        "src/services/metricsParser.ts",
+        "src/services/trackerLifecycle.ts",
+        "src/ui/statusBarHelpers.ts",
+        "src/utils/configHelpers.ts",
+        "tests/ts/**/*.ts"
+    ]
+}

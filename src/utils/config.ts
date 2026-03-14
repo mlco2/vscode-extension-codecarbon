@@ -3,6 +3,7 @@
  */
 import * as vscode from 'vscode';
 import { CONFIGURATION_KEYS } from './constants';
+import { resolvePythonPath, resolveLaunchOnStartup } from './configHelpers';
 
 export class ConfigService {
     private static readonly EXTENSION_PREFIX = 'codecarbon';
@@ -20,7 +21,7 @@ export class ConfigService {
     public static getPythonPath(): string {
         const config = this.getConfiguration();
         const interpreters = config.get<string[]>(CONFIGURATION_KEYS.INTERPRETER, []);
-        return interpreters.length > 0 ? interpreters[0] : 'python';
+        return resolvePythonPath(interpreters);
     }
 
     /**
@@ -28,7 +29,7 @@ export class ConfigService {
      */
     public static isLaunchOnStartupEnabled(): boolean {
         const config = this.getConfiguration();
-        return config.get<boolean>(CONFIGURATION_KEYS.LAUNCH_ON_STARTUP, true);
+        return resolveLaunchOnStartup((section, defaultValue) => config.get(section, defaultValue));
     }
 
     /**

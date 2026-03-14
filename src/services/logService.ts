@@ -3,13 +3,18 @@
  */
 import * as vscode from 'vscode';
 import { PYTHON_PACKAGE_NAME } from '../utils/constants';
+import { MetricsService, EmissionsMetrics } from './metricsService';
+import { parseMetricsFromLine } from './metricsParser';
 
 export class LogService {
     private static instance: LogService;
     private outputChannel: vscode.LogOutputChannel;
+    private metricsService: MetricsService;
+    private stdoutBuffer = '';
 
     private constructor(outputChannelName: string = PYTHON_PACKAGE_NAME) {
         this.outputChannel = vscode.window.createOutputChannel(outputChannelName, { log: true });
+        this.metricsService = MetricsService.getInstance();
     }
 
     /**
@@ -54,11 +59,46 @@ export class LogService {
      * Parse log data and extract emissions information
      */
     public parseLogs(data: string): void {
-        const lines = data.split('\n');
+        this.stdoutBuffer += data;
+        const lines = this.stdoutBuffer.split(/\r?\n/);
+        this.stdoutBuffer = lines.pop() ?? '';
+
         for (const line of lines) {
-            if (line.includes('emissions')) {
+            const trimmed = line.trim();
+            if (!trimmed) {
+                continue;
+            }
+
+            // Check for JSON metrics data
+            if (trimmed.includes('METRICS:')) {
+                try {
+                    const parsedMetrics = parseMetricsFromLine(trimmed);
+                    if (!parsedMetrics) {
+                        continue;
+                    }
+
+                    const metrics: EmissionsMetrics = {
+                        timestamp: parsedMetrics.timestamp,
+                        measurePowerSecs: parsedMetrics.measurePowerSecs,
+                        totalEmissions: parsedMetrics.totalEmissions,
+                        cpuPower: parsedMetrics.cpuPower,
+                        gpuPower: parsedMetrics.gpuPower,
+                        ramPower: parsedMetrics.ramPower,
+                        cpuEnergy: parsedMetrics.cpuEnergy,
+                        gpuEnergy: parsedMetrics.gpuEnergy,
+                        ramEnergy: parsedMetrics.ramEnergy,
+                        cpuAvailable: parsedMetrics.cpuAvailable,
+                        gpuAvailable: parsedMetrics.gpuAvailable,
+                        ramAvailable: parsedMetrics.ramAvailable,
+                    };
+
+                    this.metricsService.updateMetrics(metrics);
+                } catch (error) {
+                    this.logError(`Failed to parse metrics: ${error}`);
+                }
+            } else if (trimmed.includes('emissions')) {
                 // Extract and display emissions data
-                this.log(`Emissions update: ${line.trim()}`);
+                this.log(`Emissions update: ${trimmed}`);
             }
         }
     }

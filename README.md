@@ -12,11 +12,12 @@ This extension allows you to track the carbon emissions of your code directly fr
 -   Start and stop the emissions tracking with a simple click.
     ![Demo](./images/demo.gif)
 
--   View log in the output panel.
-
-![Output panel](./images/output_panel.png)
-
--   Save your emissions data into a csv file for further analysis.
+-   **Real-time metrics display**: View live CPU, GPU, and RAM power usage, energy consumption, and total emissions directly in the status bar.
+-   Detailed tooltip showing:
+    -   Current power usage (CPU/GPU/RAM in Watts)
+    -   Total energy consumed (CPU/GPU/RAM in kWh)
+    -   Total CO₂ emissions since tracking started
+-   Save it into a csv file for further analysis.
 
 ## Requirements
 
