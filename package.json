@@ -86,7 +86,7 @@
     "lint": "eslint src",
     "package": "vsce package",
     "test:python": "python3 -m unittest discover -s tests/python -p \"test_*.py\"",
-    "test:ts": "tsc -p tsconfig.tests.json && node --test out-tests/tests/ts/**/*.test.js",
+    "test:ts": "tsc -p tsconfig.tests.json && node --test out-tests/tests/ts/*.test.js",
     "test": "npm run test:python && npm run test:ts"
   },
   "devDependencies": {
