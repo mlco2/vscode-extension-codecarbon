@@ -2,12 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { resolvePythonPath, resolveLaunchOnStartup } from '../../src/utils/configHelpers';
 
-test('resolvePythonPath returns first configured interpreter', () => {
-    assert.equal(resolvePythonPath(['/usr/bin/python3', '/bin/python']), '/usr/bin/python3');
+test('resolvePythonPath returns configured interpreter string', () => {
+    assert.equal(resolvePythonPath('/usr/local/bin/python3'), '/usr/local/bin/python3');
 });
 
 test('resolvePythonPath falls back to python when empty', () => {
-    assert.equal(resolvePythonPath([]), 'python');
+    assert.equal(resolvePythonPath(''), 'python');
     assert.equal(resolvePythonPath(undefined), 'python');
 });
 

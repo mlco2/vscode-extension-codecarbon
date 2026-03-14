@@ -2,7 +2,7 @@
  * Service to manage extension configuration settings.
  */
 import * as vscode from 'vscode';
-import { CONFIGURATION_KEYS } from './constants';
+import { CONFIGURATION_KEYS, INSTALL_STRATEGIES } from './constants';
 import { resolvePythonPath, resolveLaunchOnStartup } from './configHelpers';
 
 export class ConfigService {
@@ -20,8 +20,8 @@ export class ConfigService {
      */
     public static getPythonPath(): string {
         const config = this.getConfiguration();
-        const interpreters = config.get<string[]>(CONFIGURATION_KEYS.INTERPRETER, []);
-        return resolvePythonPath(interpreters);
+        const rawInterpreter = config.get<unknown>(CONFIGURATION_KEYS.INTERPRETER);
+        return resolvePythonPath(rawInterpreter);
     }
 
     /**
@@ -30,6 +30,22 @@ export class ConfigService {
     public static isLaunchOnStartupEnabled(): boolean {
         const config = this.getConfiguration();
         return resolveLaunchOnStartup((section, defaultValue) => config.get(section, defaultValue));
+    }
+
+    public static isAutoInstallEnabled(): boolean {
+        const config = this.getConfiguration();
+        return config.get<boolean>(CONFIGURATION_KEYS.AUTO_INSTALL, true);
+    }
+
+    public static getInstallStrategy(): string {
+        const config = this.getConfiguration();
+        const strategy = config.get<string>(CONFIGURATION_KEYS.INSTALL_STRATEGY, INSTALL_STRATEGIES.VENV);
+        return strategy ?? INSTALL_STRATEGIES.VENV;
+    }
+
+    public static getCustomPipArgs(): string {
+        const config = this.getConfiguration();
+        return config.get<string>(CONFIGURATION_KEYS.CUSTOM_PIP_ARGS, '').trim();
     }
 
     /**

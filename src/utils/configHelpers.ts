@@ -1,10 +1,10 @@
 import { CONFIGURATION_KEYS } from './constants';
 
-export function resolvePythonPath(interpreters: string[] | undefined): string {
-    if (!interpreters || interpreters.length === 0) {
-        return 'python';
+export function resolvePythonPath(interpreter: unknown): string {
+    if (typeof interpreter === 'string' && interpreter.trim()) {
+        return interpreter.trim();
     }
-    return interpreters[0];
+    return 'python';
 }
 
 export function resolveLaunchOnStartup(

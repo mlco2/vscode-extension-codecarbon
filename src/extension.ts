@@ -18,7 +18,15 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     // Initialize services
     logService = LogService.getInstance();
     statusBarManager = StatusBarManager.getInstance();
-    trackerService = new TrackerService();
+    trackerService = new TrackerService({
+        onTrackerStopped: ({ expected, code }) => {
+            statusBarManager.setStoppedState();
+            if (!expected) {
+                logService.logWarning(`Tracker stopped unexpectedly (exit code: ${code ?? 'unknown'})`);
+                vscode.window.showWarningMessage('Codecarbon tracker stopped unexpectedly. See output for details.');
+            }
+        },
+    });
     pythonService = new PythonService();
 
     // Setup UI
@@ -34,7 +42,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         vscode.commands.registerCommand(COMMANDS.START, () => startTracker()),
         vscode.commands.registerCommand(COMMANDS.STOP, () => stopTracker()),
         vscode.commands.registerCommand(COMMANDS.CHECK_VERSION, () => checkCodecarbonVersion()),
+        vscode.commands.registerCommand(COMMANDS.INSTALL_REPAIR, () => installRepairCodecarbon()),
     );
+
+    await pythonService.checkInstallHealthOnStartup(ConfigService.getPythonPath());
 
     // Auto-start if enabled in settings
     if (ConfigService.isLaunchOnStartupEnabled()) {
@@ -47,9 +58,13 @@ export async function deactivate(): Promise<void> {
 }
 
 async function startTracker(): Promise<void> {
+    const interpreterPath = ConfigService.getPythonPath();
+    statusBarManager.setInstallingState({ interpreterPath });
     const success = await trackerService.start();
     if (success) {
-        statusBarManager.setRunningState();
+        statusBarManager.setRunningState({ interpreterPath });
+    } else if (!trackerService.isRunning()) {
+        statusBarManager.setStoppedState();
     }
 }
 
@@ -63,4 +78,9 @@ async function stopTracker(): Promise<void> {
 async function checkCodecarbonVersion(): Promise<void> {
     const pythonPath = ConfigService.getPythonPath();
     await pythonService.checkCodecarbonVersion(pythonPath);
+}
+
+async function installRepairCodecarbon(): Promise<void> {
+    const pythonPath = ConfigService.getPythonPath();
+    await pythonService.installOrRepairCodecarbon(pythonPath);
 }
