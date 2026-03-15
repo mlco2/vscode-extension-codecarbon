@@ -5,6 +5,8 @@ import sys
 import time
 import signal
 import json
+import argparse
+import os
 from codecarbon import EmissionsTracker
 from metrics_utils import to_number
 
@@ -12,10 +14,26 @@ from metrics_utils import to_number
 # Redirect stderr to stdout
 sys.stderr = sys.stdout
 
-# Force single-run mode to prevent parallel trackers writing to the same outputs.
-tracker = EmissionsTracker(allow_multiple_runs=False)
+def create_tracker(emissions_file_path=None):
+    """Create tracker in single-run mode, optionally overriding CSV destination."""
+    if not emissions_file_path:
+        return EmissionsTracker(allow_multiple_runs=False)
+
+    normalized = os.path.abspath(os.path.expanduser(emissions_file_path))
+    output_dir = os.path.dirname(normalized)
+    output_file = os.path.basename(normalized)
+    if not output_dir:
+        output_dir = "."
+
+    return EmissionsTracker(
+        allow_multiple_runs=False,
+        output_dir=output_dir,
+        output_file=output_file,
+    )
+
 running = True  # Global variable to control the loop
 DEFAULT_UPDATE_INTERVAL = 5.0
+tracker = None
 
 
 def get_measure_power_secs():
@@ -143,6 +161,11 @@ if __name__ == "__main__":
     print("Starting the tracker...")
     command = sys.argv[1].lower()
     if command == "start":
+        parser = argparse.ArgumentParser(add_help=False)
+        parser.add_argument("--emissions-file", dest="emissions_file", default="")
+        args, _ = parser.parse_known_args(sys.argv[2:])
+        tracker = create_tracker(args.emissions_file or None)
+
         # Register the signal handlers for graceful shutdown
         signal.signal(signal.SIGINT, signal_handler)  # Handle Ctrl+C
         signal.signal(signal.SIGTERM, signal_handler)  # Handle termination signal
