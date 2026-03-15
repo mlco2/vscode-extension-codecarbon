@@ -55,9 +55,15 @@ If you want keyboard shortcuts, add these to your `keybindings.json`:
 
 ## Requirements
 
-The extension uses `codecarbon` to measure the carbon emissions. This package connects to your hardware via specific APIs to get to know the power usage of your CPU/GPU/RAM. These APIs depend on the brand and OS. See https://mlco2.github.io/codecarbon/methodology.html#power-usage for the needed tools for your specific setup.
+The extension uses `codecarbon` to measure the carbon emissions. This package connects to your hardware via specific APIs to get to know the power usage of your CPU/GPU/RAM. These APIs depend on the brand and OS. See https://docs.codecarbon.io/latest/introduction/methodology/#power-usage for the needed tools for your specific setup.
 
 > Note: if you do not install the requirements, codecarbon will track in fallback mode.
+
+## Cross-platform caveats
+
+-   The extension behavior is designed to be consistent on Linux, macOS, and Windows (same start/stop commands, status bar state model, and logs).
+-   Hardware-level power collection accuracy depends on OS-specific CodeCarbon dependencies and vendor tooling. Review the official CodeCarbon power usage requirements in the link above.
+-   When those dependencies are unavailable, CodeCarbon may use fallback estimation mode; the extension still runs, but metrics fidelity can differ by platform.
 
 ## Extension Settings
 

@@ -12,3 +12,5 @@ bundled/libs/
 **/.vs
 
 out-tests
+# Codecarbon emissions data
+emissions.csv
