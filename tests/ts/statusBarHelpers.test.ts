@@ -5,6 +5,7 @@ import {
     getEffectiveMeasurePowerSecs,
     getStaleThresholdSeconds,
     getStaleCheckIntervalMs,
+    buildLastUpdateLine,
     buildStaleTooltip,
 } from '../../src/ui/statusBarHelpers';
 
@@ -29,6 +30,16 @@ test('stale tooltip formatting is stable and readable', () => {
     const tooltip = buildStaleTooltip(12.8, 5);
     assert.equal(
         tooltip,
-        'CodeCarbon Tracker\n\nLatest metrics are stale (12s old, expected about every 5s).\nClick to stop tracking.',
+        '$(warning) CodeCarbon Tracker\n\nMetrics are stale (12s old, expected about 5s).\n$(primitive-square) Click to stop tracking',
     );
+});
+
+test('last update line formatting is stable and readable', () => {
+    const lastUpdate = buildLastUpdateLine(1710000000, 5);
+    assert.equal(lastUpdate, '$(clock) Last update: 16:00:00 UTC (every ~5s)');
+});
+
+test('last update line handles invalid timestamps', () => {
+    const lastUpdate = buildLastUpdateLine(Number.NaN, 5);
+    assert.equal(lastUpdate, '$(clock) Last update: unknown (every ~5s)');
 });

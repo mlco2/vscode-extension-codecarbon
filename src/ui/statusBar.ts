@@ -9,10 +9,11 @@ import {
     getEffectiveMeasurePowerSecs,
     getStaleThresholdSeconds,
     getStaleCheckIntervalMs,
-    buildStaleTooltip,
+    buildLastUpdateLine,
 } from './statusBarHelpers';
 
 export class StatusBarManager {
+    private static readonly UI_REFRESH_INTERVAL_MS = 3000;
     private static instance: StatusBarManager;
     private statusBarItem: vscode.StatusBarItem;
     private metricsService: MetricsService;
@@ -21,10 +22,15 @@ export class StatusBarManager {
     private currentMeasurePowerSecs = DEFAULT_MEASURE_POWER_SECS;
     private staleCheckIntervalMs = this.getStaleCheckIntervalMs(this.currentMeasurePowerSecs);
     private runtimeDetailsLine = 'Interpreter: Unknown';
+    private readonly liveTooltip = new vscode.MarkdownString('', true);
+    private readonly staleTooltip = new vscode.MarkdownString('', true);
+    private lastUiRefreshMs = 0;
 
     private constructor() {
         this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
         this.metricsService = MetricsService.getInstance();
+        this.liveTooltip.isTrusted = false;
+        this.staleTooltip.isTrusted = false;
         this.initializeStatusBar();
     }
 
@@ -168,8 +174,6 @@ export class StatusBarManager {
 
         // Display emissions in the status bar text
         const emissionsText = this.metricsService.formatEmissions(metrics.totalEmissions);
-        this.statusBarItem.text = `${DEFAULT_STATUS_BAR_TEXT} ${emissionsText}`;
-        
         // Create concise tooltip with key metrics
         const totalPower = this.sumAvailable(
             metrics.cpuAvailable ? metrics.cpuPower : null,
@@ -182,21 +186,17 @@ export class StatusBarManager {
             metrics.ramAvailable ? metrics.ramEnergy : null,
         );
         
-        const lines = [
-            'CodeCarbon Tracker',
-            '',
-            this.runtimeDetailsLine,
-            `Emissions: ${emissionsText}`,
-            `Power total: ${this.formatMaybePower(totalPower)}`,
-            `  CPU: ${this.formatMetricPair(metrics.cpuAvailable, metrics.cpuPower, metrics.cpuEnergy)}`,
-            `  GPU: ${this.formatMetricPair(metrics.gpuAvailable, metrics.gpuPower, metrics.gpuEnergy)}`,
-            `  RAM: ${this.formatMetricPair(metrics.ramAvailable, metrics.ramPower, metrics.ramEnergy)}`,
-            `Energy total: ${this.formatMaybeEnergy(totalEnergy)}`,
-            '',
-            'Click to stop tracking'
-        ];
-        
-        this.statusBarItem.tooltip = lines.join('\n');
+        const lines = this.buildTooltipLines(metrics, emissionsText, totalPower, totalEnergy);
+        if (!this.shouldRefreshUiNow()) {
+            return;
+        }
+        this.lastUiRefreshMs = Date.now();
+        this.statusBarItem.text = `${DEFAULT_STATUS_BAR_TEXT} ${emissionsText}`;
+
+        this.liveTooltip.value = this.renderTooltipLines(lines);
+        if (this.statusBarItem.tooltip !== this.liveTooltip) {
+            this.statusBarItem.tooltip = this.liveTooltip;
+        }
     }
 
     /**
@@ -212,7 +212,11 @@ export class StatusBarManager {
         if (!this.statusBarItem.text.includes('(stale)')) {
             this.statusBarItem.text = `${this.statusBarItem.text} (stale)`;
         }
-        this.statusBarItem.tooltip = buildStaleTooltip(ageSeconds, this.currentMeasurePowerSecs);
+        const staleTooltipLines = this.buildStaleTooltipLines(ageSeconds, this.currentMeasurePowerSecs);
+        this.staleTooltip.value = this.renderTooltipLines(staleTooltipLines);
+        if (this.statusBarItem.tooltip !== this.staleTooltip) {
+            this.statusBarItem.tooltip = this.staleTooltip;
+        }
     }
 
     private getStaleThresholdSeconds(): number {
@@ -248,13 +252,6 @@ export class StatusBarManager {
         return validValues.reduce((sum, current) => sum + current, 0);
     }
 
-    private formatMetricPair(available: boolean, power: number, energy: number): string {
-        if (!available) {
-            return 'N/A';
-        }
-        return `${this.metricsService.formatPower(power)} | ${this.metricsService.formatEnergy(energy)}`;
-    }
-
     private formatMaybePower(value: number | null): string {
         if (value === null) {
             return 'N/A';
@@ -267,6 +264,45 @@ export class StatusBarManager {
             return 'N/A';
         }
         return this.metricsService.formatEnergy(value);
+    }
+
+    private buildTooltipLines(
+        metrics: EmissionsMetrics,
+        emissionsText: string,
+        totalPower: number | null,
+        totalEnergy: number | null,
+    ): string[] {
+        return [
+            '$(pulse) CodeCarbon Tracker',
+            '',
+            `Emissions total: ${emissionsText}`,
+            `Energy total: ${this.formatMaybeEnergy(totalEnergy)}`,
+            '',
+            `$(zap) Current power usage: ${this.formatMaybePower(totalPower)}`,
+            '',
+            '────────────────────────',
+            buildLastUpdateLine(metrics.timestamp, this.currentMeasurePowerSecs),
+            '$(primitive-square) Click to stop tracking',
+        ];
+    }
+    
+    private buildStaleTooltipLines(ageSeconds: number, measurePowerSecs: number): string[] {
+        return [
+            '$(warning) CodeCarbon Tracker',
+            '',
+            `Metrics are stale (${Math.floor(ageSeconds)}s old, expected about ${measurePowerSecs}s).`,
+            this.runtimeDetailsLine,
+            '',
+            '$(primitive-square) Click to stop tracking',
+        ];
+    }
+
+    private renderTooltipLines(lines: string[]): string {
+        return lines.join('  \n');
+    }
+
+    private shouldRefreshUiNow(nowMs: number = Date.now()): boolean {
+        return nowMs - this.lastUiRefreshMs >= StatusBarManager.UI_REFRESH_INTERVAL_MS;
     }
 
     /**

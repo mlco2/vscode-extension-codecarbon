@@ -20,6 +20,20 @@ export function getStaleCheckIntervalMs(measurePowerSecs: number): number {
     return Math.max(MIN_STALE_CHECK_INTERVAL_MS, Math.min(MAX_STALE_CHECK_INTERVAL_MS, interval));
 }
 
+export function buildLastUpdateLine(timestampSeconds: number, measurePowerSecs: number): string {
+    const cadence = `(every ~${measurePowerSecs}s)`;
+    if (!Number.isFinite(timestampSeconds) || timestampSeconds <= 0) {
+        return `$(clock) Last update: unknown ${cadence}`;
+    }
+    const isoTime = new Date(timestampSeconds * 1000).toISOString().slice(11, 19);
+    return `$(clock) Last update: ${isoTime} UTC ${cadence}`;
+}
+
 export function buildStaleTooltip(ageSeconds: number, measurePowerSecs: number): string {
-    return `CodeCarbon Tracker\n\nLatest metrics are stale (${Math.floor(ageSeconds)}s old, expected about every ${measurePowerSecs}s).\nClick to stop tracking.`;
+    return [
+        '$(warning) CodeCarbon Tracker',
+        '',
+        `Metrics are stale (${Math.floor(ageSeconds)}s old, expected about ${measurePowerSecs}s).`,
+        '$(primitive-square) Click to stop tracking',
+    ].join('\n');
 }
