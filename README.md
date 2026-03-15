@@ -29,6 +29,24 @@ Use the Command Palette (`Ctrl/Cmd+Shift+P`) and run:
 -   `Codecarbon: Restart tracking emissions`
 -   `Codecarbon: Open tracking logs`
 
+## Run policy
+
+-   The extension enforces a single active CodeCarbon tracker per workspace to avoid duplicate writes to `emissions.csv`.
+-   If a previous VS Code session leaves a stale tracker process, the extension attempts to clean it up automatically on the next start.
+
+## Q&A
+
+### Why does tracking fail with “Another instance of codecarbon is already running”?
+
+CodeCarbon uses a lock file to prevent multiple trackers running at the same time on the same machine.  
+This extension enforces that single-run policy (`allow_multiple_runs = false`) to avoid duplicate metrics and conflicting writes.
+
+### What should I do if I see that warning?
+
+-   Stop CodeCarbon in other VS Code windows or terminals on the same machine.
+-   Start tracking again from this window.
+-   If a previous session crashed, reopening and starting tracking again will trigger stale process cleanup for this workspace.
+
 ## Optional keybindings
 
 If you want keyboard shortcuts, add these to your `keybindings.json`:

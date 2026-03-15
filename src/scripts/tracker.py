@@ -12,7 +12,8 @@ from metrics_utils import to_number
 # Redirect stderr to stdout
 sys.stderr = sys.stdout
 
-tracker = EmissionsTracker()
+# Force single-run mode to prevent parallel trackers writing to the same outputs.
+tracker = EmissionsTracker(allow_multiple_runs=False)
 running = True  # Global variable to control the loop
 DEFAULT_UPDATE_INTERVAL = 5.0
 
@@ -39,6 +40,9 @@ def start():
     print("Tracker started.")
     print(f"Will emit metrics every {update_interval} seconds")
     tracker.start()
+    if getattr(tracker, "_another_instance_already_running", False) or not hasattr(tracker, "_start_time"):
+        print("Tracker did not start because another CodeCarbon instance is active.")
+        sys.exit(1)
 
     try:
         # Emit metrics at the same cadence as codecarbon measurement interval.
