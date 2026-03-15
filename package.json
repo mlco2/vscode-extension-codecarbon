@@ -94,6 +94,11 @@
             "Only show blocking errors as popups. Use output logs for diagnostics.",
             "Show start/stop info popups and warnings for recoverable setup issues."
           ]
+        },
+        "codecarbon.emissionsFile": {
+          "default": "",
+          "description": "Optional path for emissions CSV output. Use an absolute path for a central file shared across workspaces, or a relative path resolved from the workspace.",
+          "type": "string"
         }
       }
     },

@@ -7,6 +7,7 @@ import { ChildProcess, spawn } from 'child_process';
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs/promises';
+import * as os from 'os';
 import { LogService } from './logService';
 import { PythonService } from './pythonService';
 import { ConfigService } from '../utils/config';
@@ -59,9 +60,13 @@ export class TrackerService {
 
         const pythonPath = ConfigService.getPythonPath();
         const workspacePath = ConfigService.getWorkspaceFolderPath();
+        const emissionsFilePath = this.resolveEmissionsFilePath(ConfigService.getEmissionsFilePath(), workspacePath);
         if (workspacePath) {
             this.logService.log(`Using workspace as tracker cwd for CodeCarbon config discovery: ${workspacePath}`);
             await this.cleanupStaleWorkspaceTracker(workspacePath);
+        }
+        if (emissionsFilePath) {
+            this.logService.log(`Using configured emissions CSV path: ${emissionsFilePath}`);
         }
         this.logService.log('Run policy: single active CodeCarbon tracker per workspace (recommended).');
 
@@ -74,7 +79,11 @@ export class TrackerService {
 
             // Start the tracker process
             this.stoppingRequested = false;
-            this.pythonProcess = spawn(pythonPath, [TRACKER_SCRIPT, 'start'], workspacePath ? { cwd: workspacePath } : undefined);
+            const trackerArgs = [TRACKER_SCRIPT, 'start'];
+            if (emissionsFilePath) {
+                trackerArgs.push('--emissions-file', emissionsFilePath);
+            }
+            this.pythonProcess = spawn(pythonPath, trackerArgs, workspacePath ? { cwd: workspacePath } : undefined);
             if (workspacePath && this.pythonProcess.pid) {
                 await this.writePidFile(workspacePath, this.pythonProcess.pid);
             }
@@ -239,5 +248,22 @@ export class TrackerService {
             }
             this.logService.parseLogs(routed.parsePayload);
         }
+    }
+
+    private resolveEmissionsFilePath(configuredPath: string | undefined, workspacePath?: string): string | undefined {
+        if (!configuredPath) {
+            return undefined;
+        }
+        if (configuredPath.startsWith('~')) {
+            const withoutTilde = configuredPath.slice(1).replace(/^[/\\]/, '');
+            return path.resolve(os.homedir(), withoutTilde);
+        }
+        if (path.isAbsolute(configuredPath)) {
+            return configuredPath;
+        }
+        if (workspacePath) {
+            return path.resolve(workspacePath, configuredPath);
+        }
+        return path.resolve(configuredPath);
     }
 }

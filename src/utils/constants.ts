@@ -21,6 +21,7 @@ export const CONFIGURATION_KEYS = {
     INSTALL_STRATEGY: 'installStrategy',
     CUSTOM_PIP_ARGS: 'customPipArgs',
     NOTIFICATIONS: 'notifications',
+    EMISSIONS_FILE: 'emissionsFile',
 } as const;
 
 export const MESSAGES = {

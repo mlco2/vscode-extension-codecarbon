@@ -90,6 +90,7 @@ This extension contributes the following settings:
 
 -   `codecarbon.launchOnStartup`: If true, the extension will start tracking the emissions when you open a new window. Defaults to true.
 -   `codecarbon.notifications`: Notification policy for popups. Use `default` to show start/stop info and recoverable warnings, or `minimal` to only show blocking errors.
+-   `codecarbon.emissionsFile`: Optional CSV destination path. Set an absolute path (for example in your home directory) to use one central `emissions.csv` across workspaces.
 
 ## Contributing
 

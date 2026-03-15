@@ -53,6 +53,12 @@ export class ConfigService {
         return resolveNotificationMode((section, defaultValue) => config.get(section, defaultValue));
     }
 
+    public static getEmissionsFilePath(): string | undefined {
+        const config = this.getConfiguration();
+        const value = config.get<string>(CONFIGURATION_KEYS.EMISSIONS_FILE, '').trim();
+        return value || undefined;
+    }
+
     public static getWorkspaceFolderPath(): string | undefined {
         const folder = vscode.workspace.workspaceFolders?.[0];
         return folder?.uri.fsPath;
