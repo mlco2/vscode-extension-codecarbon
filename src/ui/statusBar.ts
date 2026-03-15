@@ -57,7 +57,7 @@ export class StatusBarManager {
     private initializeStatusBar(): void {
         this.statusBarItem.text = DEFAULT_STATUS_BAR_TEXT;
         this.statusBarItem.command = COMMANDS.START;
-        this.statusBarItem.tooltip = 'Start CodeCarbon tracker';
+        this.statusBarItem.tooltip = 'Start CodeCarbon tracker (single-run policy prevents duplicate trackers)';
     }
 
     /**
