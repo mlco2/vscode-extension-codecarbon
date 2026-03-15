@@ -19,6 +19,40 @@ This extension allows you to track the carbon emissions of your code directly fr
     -   Total CO₂ emissions since tracking started
 -   Save it into a csv file for further analysis.
 
+## Commands
+
+Use the Command Palette (`Ctrl/Cmd+Shift+P`) and run:
+
+-   `Codecarbon: Start tracking emissions`
+-   `Codecarbon: Stop tracking emissions`
+-   `Codecarbon: Restart tracking emissions`
+-   `Codecarbon: Open tracking logs`
+
+## Optional keybindings
+
+If you want keyboard shortcuts, add these to your `keybindings.json`:
+
+```json
+[
+  {
+    "key": "ctrl+alt+e",
+    "command": "codecarbon.start"
+  },
+  {
+    "key": "ctrl+alt+shift+e",
+    "command": "codecarbon.stop"
+  },
+  {
+    "key": "ctrl+alt+r",
+    "command": "codecarbon.restart"
+  },
+  {
+    "key": "ctrl+alt+l",
+    "command": "codecarbon.openLogs"
+  }
+]
+```
+
 ## Requirements
 
 The extension uses `codecarbon` to measure the carbon emissions. This package connects to your hardware via specific APIs to get to know the power usage of your CPU/GPU/RAM. These APIs depend on the brand and OS. See https://mlco2.github.io/codecarbon/methodology.html#power-usage for the needed tools for your specific setup.

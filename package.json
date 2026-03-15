@@ -96,6 +96,16 @@
         "command": "codecarbon.stop"
       },
       {
+        "title": "Restart tracking emissions",
+        "category": "Codecarbon",
+        "command": "codecarbon.restart"
+      },
+      {
+        "title": "Open tracking logs",
+        "category": "Codecarbon",
+        "command": "codecarbon.openLogs"
+      },
+      {
         "title": "Check codecarbon version",
         "category": "Codecarbon",
         "command": "codecarbon.checkVersion"

@@ -7,6 +7,8 @@ export const DEFAULT_STATUS_BAR_TEXT = '$(pulse) Codecarbon';
 export const COMMANDS = {
     START: 'codecarbon.start',
     STOP: 'codecarbon.stop',
+    RESTART: 'codecarbon.restart',
+    OPEN_LOGS: 'codecarbon.openLogs',
     CHECK_VERSION: 'codecarbon.checkVersion',
     INSTALL_REPAIR: 'codecarbon.installRepair',
     OPEN_CONFIG: 'codecarbon.openConfig',
@@ -23,6 +25,7 @@ export const CONFIGURATION_KEYS = {
 export const MESSAGES = {
     ALREADY_RUNNING: 'Codecarbon tracker is already running.',
     NOT_RUNNING: 'Codecarbon tracker is not running.',
+    RESTARTING: 'Restarting Codecarbon tracker.',
     TRACKER_STARTED: 'Codecarbon tracker started',
     TRACKER_STOPPED: 'Codecarbon tracker stopped',
     EXTENSION_ACTIVATED: 'Codecarbon extension activated',

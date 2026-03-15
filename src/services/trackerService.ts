@@ -45,11 +45,11 @@ export class TrackerService {
      */
     public async start(): Promise<boolean> {
         if (this.startInProgress) {
-            vscode.window.showInformationMessage(MESSAGES.START_IN_PROGRESS);
+            this.logService.log(MESSAGES.START_IN_PROGRESS);
             return false;
         }
         if (this.pythonProcess) {
-            vscode.window.showInformationMessage(MESSAGES.ALREADY_RUNNING);
+            this.logService.log(MESSAGES.ALREADY_RUNNING);
             return false;
         }
         this.startInProgress = true;
@@ -85,7 +85,7 @@ export class TrackerService {
      */
     public stop(): boolean {
         if (!this.pythonProcess) {
-            vscode.window.showInformationMessage(MESSAGES.NOT_RUNNING);
+            this.logService.log(MESSAGES.NOT_RUNNING);
             return false;
         }
 
@@ -94,7 +94,6 @@ export class TrackerService {
         this.pythonProcess = null;
 
         this.logService.log(MESSAGES.TRACKER_STOPPED);
-        vscode.window.showInformationMessage(MESSAGES.TRACKER_STOPPED);
         return true;
     }
 
