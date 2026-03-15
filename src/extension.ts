@@ -7,6 +7,7 @@ import * as path from 'path';
 import { LogService } from './services/logService';
 import { TrackerService } from './services/trackerService';
 import { PythonService } from './services/pythonService';
+import { NotificationService } from './services/notificationService';
 import { StatusBarManager } from './ui/statusBar';
 import { ConfigService } from './utils/config';
 import { COMMANDS, MESSAGES } from './utils/constants';
@@ -25,7 +26,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
             statusBarManager.setStoppedState();
             if (!expected) {
                 logService.logWarning(`Tracker stopped unexpectedly (exit code: ${code ?? 'unknown'})`);
-                vscode.window.showWarningMessage('Codecarbon tracker stopped unexpectedly. See output for details.');
+                NotificationService.showWarning('Codecarbon tracker stopped unexpectedly. See output for details.');
             }
         },
     });
@@ -68,6 +69,7 @@ async function startTracker(): Promise<void> {
     const success = await trackerService.start();
     if (success) {
         statusBarManager.setRunningState({ interpreterPath });
+        NotificationService.showInfo(MESSAGES.TRACKER_STARTED);
     } else if (!trackerService.isRunning()) {
         statusBarManager.setStoppedState();
     }
@@ -106,7 +108,7 @@ async function installRepairCodecarbon(): Promise<void> {
 async function openCodecarbonConfig(): Promise<void> {
     const workspacePath = ConfigService.getWorkspaceFolderPath();
     if (!workspacePath) {
-        vscode.window.showErrorMessage('No workspace folder is open. Open a folder to create/edit .codecarbon.config.');
+        NotificationService.showError('No workspace folder is open. Open a folder to create/edit .codecarbon.config.');
         return;
     }
     const resolvedPath = path.join(workspacePath, '.codecarbon.config');

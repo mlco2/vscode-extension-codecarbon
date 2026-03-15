@@ -20,6 +20,7 @@ export const CONFIGURATION_KEYS = {
     AUTO_INSTALL: 'autoInstall',
     INSTALL_STRATEGY: 'installStrategy',
     CUSTOM_PIP_ARGS: 'customPipArgs',
+    NOTIFICATIONS: 'notifications',
 } as const;
 
 export const MESSAGES = {
@@ -54,4 +55,9 @@ export const INSTALL_STRATEGIES = {
     VENV: 'venv',
     USER: 'user',
     CUSTOM: 'custom',
+} as const;
+
+export const NOTIFICATION_MODES = {
+    MINIMAL: 'minimal',
+    DEFAULT: 'default',
 } as const;
