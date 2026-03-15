@@ -11,6 +11,7 @@ import { PythonService } from './pythonService';
 import { ConfigService } from '../utils/config';
 import { MESSAGES } from '../utils/constants';
 import { routePythonLogLine } from './pythonLogRouting';
+import { NotificationService } from './notificationService';
 
 const TRACKER_SCRIPT = path.resolve(__dirname, '../scripts/tracker.py');
 
@@ -94,6 +95,7 @@ export class TrackerService {
         this.pythonProcess = null;
 
         this.logService.log(MESSAGES.TRACKER_STOPPED);
+        NotificationService.showInfo(MESSAGES.TRACKER_STOPPED);
         return true;
     }
 

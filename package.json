@@ -81,6 +81,19 @@
           "default": "",
           "description": "Custom pip install arguments used when codecarbon.installStrategy is custom (example: --index-url <url> --trusted-host <host>).",
           "type": "string"
+        },
+        "codecarbon.notifications": {
+          "default": "default",
+          "description": "Notification policy for extension popups. 'default' shows start/stop info and setup warnings; 'minimal' only shows blocking errors.",
+          "type": "string",
+          "enum": [
+            "minimal",
+            "default"
+          ],
+          "enumDescriptions": [
+            "Only show blocking errors as popups. Use output logs for diagnostics.",
+            "Show start/stop info popups and warnings for recoverable setup issues."
+          ]
         }
       }
     },

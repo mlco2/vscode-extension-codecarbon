@@ -3,7 +3,7 @@
  */
 import * as vscode from 'vscode';
 import { CONFIGURATION_KEYS, INSTALL_STRATEGIES } from './constants';
-import { resolveLaunchOnStartup, resolvePythonPath } from './configHelpers';
+import { resolveLaunchOnStartup, resolveNotificationMode, resolvePythonPath } from './configHelpers';
 
 export class ConfigService {
     private static readonly EXTENSION_PREFIX = 'codecarbon';
@@ -46,6 +46,11 @@ export class ConfigService {
     public static getCustomPipArgs(): string {
         const config = this.getConfiguration();
         return config.get<string>(CONFIGURATION_KEYS.CUSTOM_PIP_ARGS, '').trim();
+    }
+
+    public static getNotificationMode(): string {
+        const config = this.getConfiguration();
+        return resolveNotificationMode((section, defaultValue) => config.get(section, defaultValue));
     }
 
     public static getWorkspaceFolderPath(): string | undefined {

@@ -64,6 +64,7 @@ The extension uses `codecarbon` to measure the carbon emissions. This package co
 This extension contributes the following settings:
 
 -   `codecarbon.launchOnStartup`: If true, the extension will start tracking the emissions when you open a new window. Defaults to true.
+-   `codecarbon.notifications`: Notification policy for popups. Use `default` to show start/stop info and recoverable warnings, or `minimal` to only show blocking errors.
 
 ## Contributing
 

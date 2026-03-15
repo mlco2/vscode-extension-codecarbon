@@ -2,8 +2,8 @@
  * Service to manage Python runtime checks and CodeCarbon installation.
  */
 import { execFile } from 'child_process';
-import * as vscode from 'vscode';
 import { LogService } from './logService';
+import { NotificationService } from './notificationService';
 import { ConfigService } from '../utils/config';
 import { INSTALL_STRATEGIES, MESSAGES, PYTHON_PACKAGE_NAME } from '../utils/constants';
 
@@ -81,7 +81,7 @@ export class PythonService {
         this.logService.log(`Preparing Python runtime: ${pythonPath}`);
         const preflight = await this.runRuntimePreflight(pythonPath);
         if (!preflight.ok) {
-            vscode.window.showErrorMessage(MESSAGES.PREFLIGHT_FAILED);
+            NotificationService.showError(MESSAGES.PREFLIGHT_FAILED);
             return false;
         }
 
@@ -93,7 +93,7 @@ export class PythonService {
 
         this.installerState = 'not_installed';
         if (!ConfigService.isAutoInstallEnabled()) {
-            vscode.window.showWarningMessage(MESSAGES.INSTALL_DISABLED);
+            NotificationService.showWarning(MESSAGES.INSTALL_DISABLED);
             return false;
         }
 
@@ -106,7 +106,7 @@ export class PythonService {
     public async installOrRepairCodecarbon(pythonPath: string, silentSuccess = false): Promise<boolean> {
         const preflight = await this.runRuntimePreflight(pythonPath);
         if (!preflight.ok) {
-            vscode.window.showErrorMessage(MESSAGES.PREFLIGHT_FAILED);
+            NotificationService.showError(MESSAGES.PREFLIGHT_FAILED);
             return false;
         }
 
@@ -124,7 +124,7 @@ export class PythonService {
                 this.counters.lastFailure = 'none';
                 this.logCounters();
                 if (!silentSuccess) {
-                    vscode.window.showInformationMessage(MESSAGES.INSTALL_REPAIR_SUCCESS);
+                    NotificationService.showInfo(MESSAGES.INSTALL_REPAIR_SUCCESS);
                 }
                 return true;
             }
@@ -136,7 +136,7 @@ export class PythonService {
         this.installerState = 'install_failed';
         this.counters.failure += 1;
         this.logCounters();
-        vscode.window.showErrorMessage(`${MESSAGES.INSTALL_REPAIR_FAILED} ${this.remediationFor(this.counters.lastFailure)}`);
+        NotificationService.showError(`${MESSAGES.INSTALL_REPAIR_FAILED} ${this.remediationFor(this.counters.lastFailure)}`);
         return false;
     }
 
@@ -146,13 +146,13 @@ export class PythonService {
     public async checkCodecarbonVersion(pythonPath: string): Promise<void> {
         const preflight = await this.runRuntimePreflight(pythonPath);
         if (!preflight.ok) {
-            vscode.window.showErrorMessage(MESSAGES.PREFLIGHT_FAILED);
+            NotificationService.showError(MESSAGES.PREFLIGHT_FAILED);
             return;
         }
 
         const result = await this.execPython(pythonPath, ['-m', 'pip', 'show', PYTHON_PACKAGE_NAME]);
         if (!result.ok) {
-            vscode.window.showWarningMessage(MESSAGES.CHECK_VERSION_NOT_INSTALLED);
+            NotificationService.showWarning(MESSAGES.CHECK_VERSION_NOT_INSTALLED);
             this.logService.log(MESSAGES.NOT_INSTALLED);
             return;
         }
@@ -160,13 +160,13 @@ export class PythonService {
         const versionMatch = result.stdout.match(/Version:\s+(.+)/);
         const locationMatch = result.stdout.match(/Location:\s+(.+)/);
         if (!versionMatch) {
-            vscode.window.showErrorMessage(MESSAGES.VERSION_ERROR);
+            NotificationService.showError(MESSAGES.VERSION_ERROR);
             return;
         }
 
         const version = versionMatch[1].trim();
         const location = locationMatch ? locationMatch[1].trim() : 'Unknown';
-        vscode.window.showInformationMessage(`Codecarbon ${version} is installed`);
+        NotificationService.showInfo(`Codecarbon ${version} is installed`);
         this.logService.log(`Codecarbon version: ${version}`);
         this.logService.log(`Installation location: ${location}`);
         this.logService.log(`Python interpreter: ${pythonPath}`);
