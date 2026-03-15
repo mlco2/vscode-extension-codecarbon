@@ -2,7 +2,7 @@
   "name": "codecarbon",
   "displayName": "Codecarbon",
   "description": "Estimate and track carbon emissions from your computer, quantify and analyze their impact.",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "preview": true,
   "pythonPackageInfo": {
     "name": "Codecarbon",
@@ -33,7 +33,7 @@
     "climate"
   ],
   "engines": {
-    "vscode": "^1.94.0"
+    "vscode": "^1.110.0"
   },
   "categories": [
     "Machine Learning",
@@ -140,6 +140,8 @@
     "watch": "tsc -watch",
     "lint": "eslint src",
     "package": "vsce package",
+    "package:ci": "npm run lint && npm run test && npm run compile && vsce package",
+    "publish:vsce": "npm run lint && npm run compile && vsce publish",
     "test:python": "python3 -m unittest discover -s tests/python -p \"test_*.py\"",
     "test:ts": "tsc -p tsconfig.tests.json && node --test out-tests/tests/ts/*.test.js",
     "test:smoke": "node --test tests/integration/*.test.mjs",

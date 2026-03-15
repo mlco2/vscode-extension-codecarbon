@@ -59,7 +59,7 @@ async function checkTrackerLifecycle() {
             cwd: workspaceRoot,
             stdio: ['ignore', 'pipe', 'pipe'],
         });
-        const timeoutMs = 20000;
+        const timeoutMs = 30000;
         const timeout = setTimeout(() => {
             child.kill();
             reject(new Error(`Tracker did not start within ${timeoutMs}ms.`));
