@@ -10,7 +10,8 @@ This extension allows you to track the carbon emissions of your code directly fr
 
 -   Track the carbon emissions of your code directly from your VsCode.
 -   Start and stop the emissions tracking with a simple click.
-    ![Demo](./images/demo.gif)
+    
+![Demo](./images/demo.gif)
 
 -   **Real-time metrics display**: View live CPU, GPU, and RAM power usage, energy consumption, and total emissions directly in the status bar.
 -   Detailed tooltip showing:
