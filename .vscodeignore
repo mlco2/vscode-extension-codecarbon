@@ -4,6 +4,9 @@ src/**
 .gitignore
 .yarnrc
 vsc-extension-quickstart.md
+images/demo.gif
+images/banner.png
+images/output_panel.png
 **/tsconfig.json
 **/eslint.config.mjs
 **/*.map
