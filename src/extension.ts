@@ -43,6 +43,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     context.subscriptions.push(
         vscode.commands.registerCommand(COMMANDS.START, () => startTracker()),
         vscode.commands.registerCommand(COMMANDS.STOP, () => stopTracker()),
+        vscode.commands.registerCommand(COMMANDS.RESTART, () => restartTracker()),
+        vscode.commands.registerCommand(COMMANDS.OPEN_LOGS, () => openTrackingLogs()),
         vscode.commands.registerCommand(COMMANDS.CHECK_VERSION, () => checkCodecarbonVersion()),
         vscode.commands.registerCommand(COMMANDS.INSTALL_REPAIR, () => installRepairCodecarbon()),
         vscode.commands.registerCommand(COMMANDS.OPEN_CONFIG, () => openCodecarbonConfig()),
@@ -76,6 +78,19 @@ async function stopTracker(): Promise<void> {
     if (success) {
         statusBarManager.setStoppedState();
     }
+}
+
+async function restartTracker(): Promise<void> {
+    logService.log(MESSAGES.RESTARTING);
+    if (trackerService.isRunning()) {
+        trackerService.stop();
+        statusBarManager.setStoppedState();
+    }
+    await startTracker();
+}
+
+function openTrackingLogs(): void {
+    logService.getOutputChannel().show(true);
 }
 
 async function checkCodecarbonVersion(): Promise<void> {
