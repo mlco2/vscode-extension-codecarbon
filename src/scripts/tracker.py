@@ -7,7 +7,6 @@ import signal
 import json
 import argparse
 import os
-from codecarbon import EmissionsTracker
 from metrics_utils import to_number
 
 
@@ -16,6 +15,12 @@ sys.stderr = sys.stdout
 
 def create_tracker(emissions_file_path=None):
     """Create tracker in single-run mode, optionally overriding CSV destination."""
+    try:
+        from codecarbon import EmissionsTracker
+    except ModuleNotFoundError:
+        print("CodeCarbon Python package is not installed. Run install/repair and try again.")
+        sys.exit(1)
+
     if not emissions_file_path:
         return EmissionsTracker(allow_multiple_runs=False)
 
