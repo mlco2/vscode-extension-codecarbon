@@ -1,6 +1,4 @@
-[![CodeCarbon](https://raw.githubusercontent.com/inimaz/vscode-extension-codecarbon/master/images/banner.png)](https://www.codecarbon.io/)
-
-> :construction: **EARLY ACCESS**: This extension is in active development. We encourage everyone to try it out and provide feedback to help us improve. Your input is invaluable in making this tool better for everyone. Please share your thoughts, report bugs, and suggest features on our [GitHub Issues page](https://github.com/inimaz/vscode-extension-codecarbon/issues).
+[![CodeCarbon](https://raw.githubusercontent.com/mlco2/vscode-extension-codecarbon/master/images/banner.png)](https://www.codecarbon.io/)
 
 # Codecarbon extension
 
@@ -11,7 +9,7 @@ This extension allows you to track the carbon emissions of your code directly fr
 -   Track the carbon emissions of your code directly from your VsCode.
 -   Start and stop the emissions tracking with a simple click.
     
-![Demo](https://raw.githubusercontent.com/inimaz/vscode-extension-codecarbon/master/images/demo.gif)
+![Demo](https://raw.githubusercontent.com/mlco2/vscode-extension-codecarbon/master/images/demo.gif)
 
 -   **Real-time metrics display**: View live CPU, GPU, and RAM power usage, energy consumption, and total emissions directly in the status bar.
 -   Detailed tooltip showing:

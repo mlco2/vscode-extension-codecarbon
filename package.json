@@ -2,21 +2,21 @@
   "name": "codecarbon",
   "displayName": "Codecarbon",
   "description": "Estimate and track carbon emissions from your computer, quantify and analyze their impact.",
-  "version": "0.3.2",
-  "preview": true,
+  "version": "0.4.0",
+  "preview": false,
   "pythonPackageInfo": {
     "name": "Codecarbon",
     "module": "codecarbon"
   },
   "publisher": "codecarbon",
   "license": "MIT",
-  "homepage": "https://github.com/inimaz/vscode-extension-codecarbon",
+  "homepage": "https://github.com/mlco2/vscode-extension-codecarbon",
   "repository": {
     "type": "git",
-    "url": "https://github.com/inimaz/vscode-extension-codecarbon.git"
+    "url": "https://github.com/mlco2/vscode-extension-codecarbon.git"
   },
   "bugs": {
-    "url": "https://github.com/inimaz/vscode-extension-codecarbon/issues"
+    "url": "https://github.com/mlco2/vscode-extension-codecarbon/issues"
   },
   "galleryBanner": {
     "color": "#1e415e",
