@@ -54,7 +54,7 @@
         },
         "codecarbon.interpreter": {
           "default": "",
-          "description": "Python executable path. Leave empty to use system default.",
+          "description": "Python executable path. Leave empty to use platform default (python3 on macOS/Linux, python on Windows).",
           "type": "string"
         },
         "codecarbon.autoInstall": {
