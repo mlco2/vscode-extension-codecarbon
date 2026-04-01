@@ -72,8 +72,8 @@ export class TrackerService {
 
         try {
             // Ensure codecarbon is installed
-            const isInstalled = await this.pythonService.ensureCodecarbonInstalled(pythonPath);
-            if (!isInstalled) {
+            const resolvedPythonPath = await this.pythonService.ensureCodecarbonInstalled(pythonPath);
+            if (!resolvedPythonPath) {
                 return false;
             }
 
@@ -83,7 +83,7 @@ export class TrackerService {
             if (emissionsFilePath) {
                 trackerArgs.push('--emissions-file', emissionsFilePath);
             }
-            this.pythonProcess = spawn(pythonPath, trackerArgs, workspacePath ? { cwd: workspacePath } : undefined);
+            this.pythonProcess = spawn(resolvedPythonPath, trackerArgs, workspacePath ? { cwd: workspacePath } : undefined);
             if (workspacePath && this.pythonProcess.pid) {
                 await this.writePidFile(workspacePath, this.pythonProcess.pid);
             }

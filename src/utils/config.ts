@@ -24,6 +24,17 @@ export class ConfigService {
         return resolvePythonPath(rawInterpreter);
     }
 
+    public static hasExplicitPythonPath(): boolean {
+        const config = this.getConfiguration();
+        const inspection = config.inspect<string>(CONFIGURATION_KEYS.INTERPRETER);
+        const values = [
+            inspection?.globalValue,
+            inspection?.workspaceValue,
+            inspection?.workspaceFolderValue,
+        ];
+        return values.some((value) => typeof value === 'string' && value.trim().length > 0);
+    }
+
     /**
      * Check if launch on startup is enabled
      */
