@@ -185,7 +185,8 @@ export class PythonService {
     }
 
     private async resolveRuntime(pythonPath: string): Promise<ResolvedRuntime | null> {
-        const preferPythonExtension = !ConfigService.hasExplicitPythonPath();
+        const hasExplicitPythonPath = ConfigService.hasExplicitPythonPath();
+        const preferPythonExtension = !hasExplicitPythonPath;
         const candidates = await this.interpreterResolver.getCandidates(pythonPath, preferPythonExtension);
         const selected = await selectWorkingInterpreter(candidates, async (candidate) => {
             const preflight = await this.runRuntimePreflight(candidate);
@@ -195,6 +196,11 @@ export class PythonService {
             return null;
         }
         if (selected !== pythonPath) {
+            if (hasExplicitPythonPath) {
+                this.logService.logWarning(
+                    `Configured interpreter failed; using fallback interpreter instead: ${selected} (configured: ${pythonPath})`,
+                );
+            }
             this.logService.log(`Python runtime fallback selected: ${selected} (configured: ${pythonPath})`);
         }
         return { pythonPath: selected };
