@@ -4,6 +4,8 @@
 import { execFile } from 'child_process';
 import { LogService } from './logService';
 import { NotificationService } from './notificationService';
+import { InterpreterResolver } from './interpreterResolver';
+import { selectWorkingInterpreter } from './interpreterSelection';
 import { ConfigService } from '../utils/config';
 import { INSTALL_STRATEGIES, MESSAGES, PYTHON_PACKAGE_NAME } from '../utils/constants';
 
@@ -25,6 +27,10 @@ interface RuntimePreflight {
     details: string[];
 }
 
+interface ResolvedRuntime {
+    pythonPath: string;
+}
+
 interface ExecResult {
     ok: boolean;
     stdout: string;
@@ -42,12 +48,14 @@ interface InstallCounters {
 export class PythonService {
     private static readonly MIN_SUPPORTED_PYTHON_MINOR = 8;
     private logService: LogService;
+    private interpreterResolver: InterpreterResolver;
     private installerState: InstallerState = 'not_installed';
     private counters: InstallCounters = { attempts: 0, success: 0, failure: 0, lastFailure: 'none' };
     private startupHealthChecked = false;
 
     constructor() {
         this.logService = LogService.getInstance();
+        this.interpreterResolver = new InterpreterResolver();
     }
 
     public getInstallerState(): InstallerState {
@@ -63,13 +71,13 @@ export class PythonService {
         }
         this.startupHealthChecked = true;
 
-        const preflight = await this.runRuntimePreflight(pythonPath);
-        if (!preflight.ok) {
+        const runtime = await this.resolveRuntime(pythonPath);
+        if (!runtime) {
             this.logService.logWarning('Startup health check: Python preflight failed.');
             return;
         }
 
-        const installed = await this.isPackageInstalled(pythonPath, PYTHON_PACKAGE_NAME);
+        const installed = await this.isPackageInstalled(runtime.pythonPath, PYTHON_PACKAGE_NAME);
         this.installerState = installed ? 'installed' : 'not_installed';
         this.logService.log(`Startup health check: installer_state=${this.installerState}`);
     }
@@ -77,38 +85,41 @@ export class PythonService {
     /**
      * Ensure runtime is ready and codecarbon package is available before tracking starts.
      */
-    public async ensureCodecarbonInstalled(pythonPath: string): Promise<boolean> {
+    public async ensureCodecarbonInstalled(pythonPath: string): Promise<string | null> {
         this.logService.log(`Preparing Python runtime: ${pythonPath}`);
-        const preflight = await this.runRuntimePreflight(pythonPath);
-        if (!preflight.ok) {
+        const runtime = await this.resolveRuntime(pythonPath);
+        if (!runtime) {
             NotificationService.showError(MESSAGES.PREFLIGHT_FAILED);
-            return false;
+            return null;
         }
+        const resolvedPythonPath = runtime.pythonPath;
 
-        const isInstalled = await this.isPackageInstalled(pythonPath, PYTHON_PACKAGE_NAME);
+        const isInstalled = await this.isPackageInstalled(resolvedPythonPath, PYTHON_PACKAGE_NAME);
         if (isInstalled) {
             this.installerState = 'installed';
-            return true;
+            return resolvedPythonPath;
         }
 
         this.installerState = 'not_installed';
         if (!ConfigService.isAutoInstallEnabled()) {
             NotificationService.showWarning(MESSAGES.INSTALL_DISABLED);
-            return false;
+            return null;
         }
 
-        return this.installOrRepairCodecarbon(pythonPath, true);
+        const installedNow = await this.installOrRepairCodecarbon(resolvedPythonPath, true);
+        return installedNow ? resolvedPythonPath : null;
     }
 
     /**
      * Explicit command entrypoint to install/repair codecarbon package.
      */
     public async installOrRepairCodecarbon(pythonPath: string, silentSuccess = false): Promise<boolean> {
-        const preflight = await this.runRuntimePreflight(pythonPath);
-        if (!preflight.ok) {
+        const runtime = await this.resolveRuntime(pythonPath);
+        if (!runtime) {
             NotificationService.showError(MESSAGES.PREFLIGHT_FAILED);
             return false;
         }
+        const resolvedPythonPath = runtime.pythonPath;
 
         this.installerState = 'installing';
         this.counters.attempts += 1;
@@ -116,7 +127,7 @@ export class PythonService {
 
         const strategies = this.resolveInstallStrategies();
         for (const args of strategies) {
-            const result = await this.execPython(pythonPath, ['-m', 'pip', 'install', ...args, PYTHON_PACKAGE_NAME]);
+            const result = await this.execPython(resolvedPythonPath, ['-m', 'pip', 'install', ...args, PYTHON_PACKAGE_NAME]);
             this.logPipAttempt(args, result);
             if (result.ok) {
                 this.installerState = 'installed';
@@ -144,13 +155,14 @@ export class PythonService {
      * Check codecarbon version and display information.
      */
     public async checkCodecarbonVersion(pythonPath: string): Promise<void> {
-        const preflight = await this.runRuntimePreflight(pythonPath);
-        if (!preflight.ok) {
+        const runtime = await this.resolveRuntime(pythonPath);
+        if (!runtime) {
             NotificationService.showError(MESSAGES.PREFLIGHT_FAILED);
             return;
         }
+        const resolvedPythonPath = runtime.pythonPath;
 
-        const result = await this.execPython(pythonPath, ['-m', 'pip', 'show', PYTHON_PACKAGE_NAME]);
+        const result = await this.execPython(resolvedPythonPath, ['-m', 'pip', 'show', PYTHON_PACKAGE_NAME]);
         if (!result.ok) {
             NotificationService.showWarning(MESSAGES.CHECK_VERSION_NOT_INSTALLED);
             this.logService.log(MESSAGES.NOT_INSTALLED);
@@ -169,7 +181,29 @@ export class PythonService {
         NotificationService.showInfo(`Codecarbon ${version} is installed`);
         this.logService.log(`Codecarbon version: ${version}`);
         this.logService.log(`Installation location: ${location}`);
-        this.logService.log(`Python interpreter: ${pythonPath}`);
+        this.logService.log(`Python interpreter: ${resolvedPythonPath}`);
+    }
+
+    private async resolveRuntime(pythonPath: string): Promise<ResolvedRuntime | null> {
+        const hasExplicitPythonPath = ConfigService.hasExplicitPythonPath();
+        const preferPythonExtension = !hasExplicitPythonPath;
+        const candidates = await this.interpreterResolver.getCandidates(pythonPath, preferPythonExtension);
+        const selected = await selectWorkingInterpreter(candidates, async (candidate) => {
+            const preflight = await this.runRuntimePreflight(candidate);
+            return preflight.ok;
+        });
+        if (!selected) {
+            return null;
+        }
+        if (selected !== pythonPath) {
+            if (hasExplicitPythonPath) {
+                this.logService.logWarning(
+                    `Configured interpreter failed; using fallback interpreter instead: ${selected} (configured: ${pythonPath})`,
+                );
+            }
+            this.logService.log(`Python runtime fallback selected: ${selected} (configured: ${pythonPath})`);
+        }
+        return { pythonPath: selected };
     }
 
     private async runRuntimePreflight(pythonPath: string): Promise<RuntimePreflight> {
