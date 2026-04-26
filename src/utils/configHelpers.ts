@@ -4,7 +4,10 @@ export function resolvePythonPath(interpreter: unknown): string {
     if (typeof interpreter === 'string' && interpreter.trim()) {
         return interpreter.trim();
     }
-    return 'python';
+    if (process.platform === 'win32') {
+        return 'python';
+    }
+    return 'python3';
 }
 
 export function resolveLaunchOnStartup(
