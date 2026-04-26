@@ -24,6 +24,10 @@ export function buildInterpreterCandidates(
     }
 
     if (process.platform === 'win32') {
+        if (seen.has('python3')) {
+            add('python');
+            add('py');
+        }
         if (seen.has('python')) {
             add('py');
         }
