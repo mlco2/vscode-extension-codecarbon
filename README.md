@@ -72,7 +72,7 @@ If you want keyboard shortcuts, add these to your `keybindings.json`:
 
 ## Requirements
 
-The extension uses `codecarbon` to measure the carbon emissions. This package connects to your hardware via specific APIs to get to know the power usage of your CPU/GPU/RAM. These APIs depend on the brand and OS. See https://docs.codecarbon.io/latest/introduction/methodology/#power-usage for the needed tools for your specific setup.
+The extension uses `codecarbon` to measure the carbon emissions. This package connects to your hardware via specific APIs to get to know the power usage of your CPU/GPU/RAM. These APIs depend on the brand and OS. See https://docs.codecarbon.io/latest/explanation/methodology/#power-usage for the needed tools for your specific setup.
 
 > Note: if you do not install the requirements, codecarbon will track in fallback mode.
 
