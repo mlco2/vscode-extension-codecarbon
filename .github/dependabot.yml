@@ -11,6 +11,10 @@ updates:
     directory: /
     schedule:
       interval: monthly
+    groups:
+      npm-dependencies:
+        patterns:
+          - '*'
     labels:
       - 'no-changelog'
     ignore:
