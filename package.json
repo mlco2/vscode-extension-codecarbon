@@ -155,10 +155,10 @@
   "devDependencies": {
     "@types/node": "^25.5.0",
     "@types/vscode": "^1.110.0",
-    "@typescript-eslint/eslint-plugin": "^8.59.1",
+    "@typescript-eslint/eslint-plugin": "^8.60.1",
     "@typescript-eslint/parser": "^8.58.0",
     "@vscode/vsce": "^3.9.1",
-    "eslint": "^10.3.0",
+    "eslint": "^10.4.1",
     "prettier": "^3.8.3",
     "typescript": "^6.0.3"
   }
